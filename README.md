@@ -106,7 +106,20 @@ agents:
 pace/
 ├── .claude-plugin/           # Claude Code 插件配置
 │   ├── plugin.json
-│   └── marketplace.json
+│   ├── marketplace.json
+│   └── skills/              # Skills（Claude Code 从此加载）
+│       ├── archive/
+│       ├── bootstrap/
+│       ├── config/
+│       ├── discuss/
+│       ├── execute/
+│       ├── intake/
+│       ├── map-codebase/
+│       ├── milestone/
+│       ├── plan/
+│       ├── roadmap/
+│       ├── status/
+│       └── verify/
 ├── .agents/plugins/          # Codex CLI 插件配置
 │   ├── plugin.json
 │   └── marketplace.json
@@ -116,17 +129,8 @@ pace/
 │   └── config.multica.yaml
 ├── bin/
 │   └── pace-merge.js         # 配置合并脚本
-├── skills/                   # 共享 skills（双平台通用）
-│   ├── archive/
-│   ├── bootstrap/
-│   ├── config/
-│   ├── discuss/
-│   ├── execute/
-│   ├── intake/
-│   ├── map-codebase/
-│   ├── milestone/
-│   ├── plan/
-│   ├── roadmap/
+├── README.md
+└── package.json
 │   ├── status/
 │   └── verify/
 ├── README.md

@@ -8,5 +8,5 @@
   "repository": "https://github.com/Ghost233/pace",
   "license": "MIT",
   "keywords": ["project-management", "workflow", "phases", "planning", "execution"],
-  "skills": "../skills/"
+  "skills": "./skills/"
 }
