@@ -1,12 +1,12 @@
 {
   "name": "pace",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "轻量级项目管理 Skills — Plan, Act, Check, Evolve",
   "author": {
     "name": "PACE"
   },
-  "repository": "",
+  "repository": "https://github.com/Ghost233/pace",
   "license": "MIT",
   "keywords": ["project-management", "workflow", "phases", "planning", "execution"],
-  "skills": "./skills/"
+  "skills": "../skills/"
 }

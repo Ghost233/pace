@@ -9,9 +9,9 @@
   "plugins": [
     {
       "name": "pace",
-      "source": "../",
+      "source": "./",
       "description": "轻量级项目管理 Skills — Plan, Act, Check, Evolve",
-      "version": "1.0.0",
+      "version": "0.0.1",
       "author": {"name": "PACE"},
       "license": "MIT",
       "keywords": ["project-management", "workflow", "phases"]
