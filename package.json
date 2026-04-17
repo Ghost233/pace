@@ -1,0 +1,12 @@
+{
+  "name": "pace",
+  "version": "1.0.0",
+  "description": "PACE - Plan, Act, Check, Evolve. 轻量级 Claude Code 项目管理 Skills",
+  "private": true,
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "bin": {
+    "pace-merge": "./bin/pace-merge.js"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "pace",
+  "version": "1.0.0",
+  "description": "轻量级项目管理 Skills — Plan, Act, Check, Evolve",
+  "author": {
+    "name": "PACE"
+  },
+  "repository": "",
+  "license": "MIT",
+  "keywords": ["project-management", "workflow", "phases", "planning", "execution"],
+  "skills": "./skills/"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "pace",
+  "interface": {
+    "displayName": "PACE - Plan, Act, Check, Evolve"
+  },
+  "plugins": [
+    {
+      "name": "pace",
+      "source": {
+        "source": "local",
+        "path": "../../"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "NONE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

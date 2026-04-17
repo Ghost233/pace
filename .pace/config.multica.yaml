@@ -1,0 +1,9 @@
+# PACE multica 使用覆盖
+executor: multica
+
+tracker:
+  type: github
+  github:
+    repo: "your-username/your-repo"
+    username: "your-username"
+    verified: false

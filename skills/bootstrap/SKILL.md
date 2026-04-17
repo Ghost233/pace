@@ -1,0 +1,90 @@
+---
+name: pace:bootstrap
+description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或 brownfield，必要时先路由到代码库映射，再创建 project、requirements、roadmap seed 和 state。当用户想在当前仓库启动一套新的轻量 workflow（而非维护已有 phase 结构）时触发。
+---
+
+# PACE Bootstrap
+
+## 配置读取
+
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
+
+## 默认约定
+
+- 所有工作流产物写入 `.pace/`
+- 除非用户明确要求迁移，否则不要修改现有 `.planning/`
+- brownfield 且缺少代码地图时，优先路由到 `pace:map-codebase`
+- bootstrap 只做初始化，不做后续 roadmap 维护
+
+## 必需产物
+
+- `.pace/project.md`
+- `.pace/requirements.md`
+- `.pace/roadmap.md`
+- `.pace/state.md`
+
+优先使用：
+
+- `templates/project.template.md`
+- `templates/requirements.template.md`
+- `../pace:roadmap/templates/roadmap.template.md`
+- `../pace:roadmap/templates/state.template.md`
+
+## 最小流程
+
+1. 判断当前仓库是 greenfield 还是 brownfield
+2. 若是 brownfield 且无代码地图，建议先运行 `pace:map-codebase`
+3. 获取项目简述
+4. 写 `project.md`
+5. 写 `requirements.md`
+6. 写最小 `roadmap seed`
+7. 写 `state.md`
+
+## 输出要求
+
+`project.md` 最少要有：
+
+- What This Is
+- Who It Is For
+- Core Value
+- Constraints
+- Non-Goals
+
+`requirements.md` 最少要有：
+
+- 稳定的 requirement ID
+- 简短验收口径
+
+`roadmap.md` 在 bootstrap 阶段只要写到足够支持后续路由：
+
+- Phase ID
+- Title
+- Type（tech 或 requirement）
+- Goal
+- Requirements
+- Depends On
+- Status
+
+Type 规则：
+- 代码映射、环境搭建等技术前置 phase 标记为 `tech`
+- 产品需求 phase 标记为 `requirement`
+
+`state.md` 最少要有：
+
+- Current Milestone
+- Current Phase
+- Current Step
+- Recommended Next Skill
+- Known Blockers
+
+## 边界
+
+- 不要在 bootstrap 阶段做完整 phase 拆分优化
+- 不要在这里执行 add / insert / remove / reorder phase
+- 后续 roadmap 结构维护统一交给 `pace:roadmap`
+
+## 后续路由
+
+- brownfield 且缺代码地图：`pace:map-codebase`
+- 首个 phase 还缺决策：`pace:discuss`
+- 首个 phase 已足够清晰：`pace:plan`

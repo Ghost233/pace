@@ -1,0 +1,20 @@
+{
+  "name": "pace",
+  "owner": {
+    "name": "PACE"
+  },
+  "metadata": {
+    "description": "PACE - Plan, Act, Check, Evolve. 轻量级 Claude Code 项目管理 Skills"
+  },
+  "plugins": [
+    {
+      "name": "pace",
+      "source": "../",
+      "description": "轻量级项目管理 Skills — Plan, Act, Check, Evolve",
+      "version": "1.0.0",
+      "author": {"name": "PACE"},
+      "license": "MIT",
+      "keywords": ["project-management", "workflow", "phases"]
+    }
+  ]
+}

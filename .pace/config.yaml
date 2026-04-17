@@ -1,0 +1,13 @@
+# PACE 基础配置（所有环境共享）
+executor: claude-code
+
+agents:
+  max_concurrent: 3
+  model_profile: balanced
+
+tracker:
+  type: local
+  github:
+    repo: ""
+    username: ""
+    verified: false

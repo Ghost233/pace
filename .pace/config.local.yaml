@@ -1,0 +1,5 @@
+# PACE 本地使用覆盖
+executor: claude-code
+
+tracker:
+  type: local
