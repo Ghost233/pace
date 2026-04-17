@@ -6,28 +6,18 @@
 
 ## 安装
 
-### Claude Code（推荐）
+### Claude Code
 
 ```bash
 /plugin marketplace add Ghost233/pace
 /plugin install pace@pace
 ```
 
-### Claude Code（手动）
-
-```bash
-git clone https://github.com/Ghost233/pace.git
-cd pace
-./install.sh --local    # 项目级
-./install.sh --global   # 全局
-```
-
 ### Codex CLI
 
 ```bash
-git clone https://github.com/Ghost233/pace.git
-cd pace
-./install.sh --codex    # 安装到当前项目
+/plugin marketplace add Ghost233/pace
+/plugin install pace@pace
 ```
 
 ## 快速开始
@@ -105,18 +95,8 @@ agents:
 
 ## 卸载
 
-### Claude Code
-
 ```bash
-./install.sh --uninstall
-# 或
 /plugin uninstall pace@pace
-```
-
-### Codex CLI
-
-```bash
-./install.sh --uninstall
 ```
 
 ## 项目结构
@@ -149,7 +129,6 @@ pace/
 │   ├── status/
 │   └── verify/
 ├── README.md
-├── install.sh
 └── package.json
 ```
 
