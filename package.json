@@ -1,6 +1,6 @@
 {
   "name": "pace",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "PACE - Plan, Act, Check, Evolve. 轻量级 Claude Code 项目管理 Skills",
   "private": true,
   "dependencies": {
