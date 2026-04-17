@@ -16,8 +16,9 @@
 ### Codex CLI
 
 ```bash
-/plugin marketplace add Ghost233/pace
-/plugin install pace@pace
+git clone https://github.com/Ghost233/pace.git
+cp -r pace/skills/ your-project/.agents/skills/
+cp -r pace/.pace/ your-project/.pace/
 ```
 
 ## 快速开始
