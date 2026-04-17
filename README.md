@@ -6,20 +6,18 @@
 
 ## 安装
 
-### Claude Code
+### Claude Code（推荐）
 
 ```bash
-# 添加 marketplace
-/plugin marketplace add <your-username>/pace
-
-# 安装插件
+/plugin marketplace add Ghost233/pace
 /plugin install pace@pace
 ```
 
-或手动安装：
+### Claude Code（手动）
 
 ```bash
-git clone https://github.com/<your-username>/pace.git
+git clone https://github.com/Ghost233/pace.git
+cd pace
 ./install.sh --local    # 项目级
 ./install.sh --global   # 全局
 ```
@@ -27,15 +25,19 @@ git clone https://github.com/<your-username>/pace.git
 ### Codex CLI
 
 ```bash
-git clone https://github.com/<your-username>/pace.git
-# 将 skills/ 目录复制到项目的 .agents/skills/ 下
-cp -r pace/skills/ your-project/.agents/skills/
+git clone https://github.com/Ghost233/pace.git
+cd pace
+./install.sh --codex    # 安装到当前项目
 ```
 
 ## 快速开始
 
-```
-/pace:config    → 初始化配置（追踪方式、子代理并发、模型档位）
+```bash
+# 1. 合并配置（根据执行环境选择）
+node bin/pace-merge.js local     # 本地 Claude Code
+node bin/pace-merge.js multica   # multica 编排
+
+# 2. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
 /pace:status    → 查看当前进度和下一步建议
 ```
@@ -65,23 +67,41 @@ bootstrap → map-codebase → intake → discuss → plan → execute → verif
 
 ## 配置
 
-运行 `/pace:config` 后生成 `.pace-config.yaml`：
+配置文件位于 `.pace/` 目录下，支持分层合并：
 
-```yaml
-tracker:
-  type: local              # local | github
-  github:
-    repo: ""               # owner/repo
-    username: ""
-    verified: false
-
-agents:
-  max_concurrent: 3        # 1-5
-  model_profile: balanced  # quality | balanced | budget | adaptive
+```
+.pace/
+├── config.yaml           # 基础配置（所有环境共享）
+├── config.local.yaml     # 本地 Claude Code 覆盖
+└── config.multica.yaml   # multica 编排覆盖
 ```
 
-- **local** — 工作日志保存在 `.pace/`
-- **github** — 同步到 GitHub Issues（需要 gh CLI）
+合并命令：
+
+```bash
+node bin/pace-merge.js local     # → .pace-config.yaml
+node bin/pace-merge.js multica   # → .pace-config.yaml
+```
+
+配置字段：
+
+```yaml
+# 执行引擎
+executor: claude-code    # claude-code | multica | manual
+
+# 文档追踪
+tracker:
+  type: local            # local | github
+  github:
+    repo: ""             # owner/repo
+    username: ""         # GitHub 用户名
+    verified: false      # gh 连通性验证
+
+# 子代理设置
+agents:
+  max_concurrent: 3      # 最大并行数 (1-5)
+  model_profile: balanced # quality | balanced | budget | adaptive
+```
 
 ## 卸载
 
@@ -96,7 +116,7 @@ agents:
 ### Codex CLI
 
 ```bash
-rm -rf .agents/skills/
+./install.sh --uninstall
 ```
 
 ## 项目结构
@@ -109,6 +129,12 @@ pace/
 ├── .agents/plugins/          # Codex CLI 插件配置
 │   ├── plugin.json
 │   └── marketplace.json
+├── .pace/                    # 配置文件（提交到 git）
+│   ├── config.yaml
+│   ├── config.local.yaml
+│   └── config.multica.yaml
+├── bin/
+│   └── pace-merge.js         # 配置合并脚本
 ├── skills/                   # 共享 skills（双平台通用）
 │   ├── archive/
 │   ├── bootstrap/
@@ -123,7 +149,8 @@ pace/
 │   ├── status/
 │   └── verify/
 ├── README.md
-└── install.sh
+├── install.sh
+└── package.json
 ```
 
 ## 名称含义
