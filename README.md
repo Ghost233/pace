@@ -191,6 +191,7 @@ pace-init multica --repo <owner/repo> --github-user <username>
 ```
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
+如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
 
 配置字段：
 

@@ -47,6 +47,7 @@ pace-init multica \
 ```
 
 这会生成 `.pace/session.yaml`，把本次 multica 运行所需的配置和上下文一次性写好。
+如果参数填错，直接用正确参数重新执行一次 `pace-init multica` 即可覆盖 `.pace/session.yaml`。
 
 如果你只想看底层模板合并结果，才使用：
 
