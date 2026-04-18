@@ -79,11 +79,25 @@ exec node "$PACE_HOME/bin/pace-init.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/pace-init"
 
+cat > "$BIN_DIR/pace-git" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec node "$PACE_HOME/bin/pace-git.js" "\$@"
+EOF
+chmod +x "$BIN_DIR/pace-git"
+
+cat > "$BIN_DIR/pace-gh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec node "$PACE_HOME/bin/pace-gh.js" "\$@"
+EOF
+chmod +x "$BIN_DIR/pace-gh"
+
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Helpers: $BIN_DIR/pace-merge, $BIN_DIR/pace-init
+- Helpers: $BIN_DIR/pace-merge, $BIN_DIR/pace-init, $BIN_DIR/pace-git, $BIN_DIR/pace-gh
 
 建议把以下目录加入 PATH:
 
@@ -95,4 +109,6 @@ PACE 已安装到:
   pace-merge multica
   pace-init local
   pace-init multica --repo <owner/repo> --github-user <username>
+  pace-git status
+  pace-gh issue-read --issue 72
 EOF

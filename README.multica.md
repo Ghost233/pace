@@ -23,10 +23,12 @@
 3. Multica issue 是流程入口和协作面。
 4. GitHub issue 是外部追踪时间线。
 5. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
-6. 只要要访问 GitHub，就必须先安装 `gh`、确认已登录，并在每次 GitHub 命令前先执行 `gh auth switch -u <tracker.github.username>`。
+6. 只要要访问 GitHub，就必须先安装 `gh` 并确认已登录；如果使用 `pace-gh` / `pace-git`，它们会在执行前自动按 session 切换到配置中的 GitHub 用户。
 7. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
-8. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
-9. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
+8. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
+9. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
+10. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+11. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -53,6 +55,14 @@ pace-init multica \
 
 ```bash
 pace-merge multica
+```
+
+如果本轮会产出提交，推荐先确认：
+
+```bash
+pace-git info
+pace-git status
+pace-gh repo-check
 ```
 
 ### 2. 初始化 PACE 工作区
@@ -100,7 +110,7 @@ brew install gh
 gh auth login
 ```
 
-并且在每次 GitHub 命令前，先切到配置中的目标用户：
+如果你直接使用原生 `gh`，则必须在每次 GitHub 命令前先切到配置中的目标用户：
 
 ```bash
 gh auth switch -u <tracker.github.username>
@@ -113,6 +123,48 @@ gh auth switch -u <tracker.github.username>
 - 当前登录用户不是配置中的 `tracker.github.username`
 - 指定用户无权访问 `tracker.github.repo`
 - 没有配置 `git.name` / `git.email`，但流程需要产出提交
+
+## 受限 Git 入口
+
+推荐只通过 `pace-git` 执行仓库操作。
+
+允许的命令：
+
+- `pace-git status`
+- `pace-git diff`
+- `pace-git stage`
+- `pace-git unstage`
+- `pace-git commit -m "..."`
+- `pace-git push`
+- `pace-git branch`
+- `pace-git log`
+- `pace-git info`
+
+`pace-git` 会限制危险行为，并在 session 中配置了 GitHub 用户时自动切换用户：
+
+- 不支持 `reset / checkout / switch / rebase / merge / cherry-pick / clean / stash`
+- 不支持强制 push
+- `commit` 必须显式带 `-m`
+- `push` 固定推送到 `origin` 当前分支
+
+## 受限 GitHub 入口
+
+推荐只通过 `pace-gh` 执行 GitHub issue 相关操作。
+
+允许的命令：
+
+- `pace-gh whoami`
+- `pace-gh repo-check`
+- `pace-gh issue-read`
+- `pace-gh issue-comment`
+- `pace-gh attachment-download`
+
+`pace-gh` 会限制危险行为，并在执行前自动切换到 session 中配置的 GitHub 用户：
+
+- 不支持任意 gh 子命令透传
+- 不支持 issue 删除 / 编辑 / close / reopen
+- 不支持 PR 操作
+- 不支持 release / workflow / repo 管理操作
 
 ## 角色设计
 
@@ -138,7 +190,7 @@ gh auth switch -u <tracker.github.username>
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
 - 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `pace-init multica` 初始化
-- 每个角色只要要执行 GitHub 命令，就必须先执行 `gh auth switch -u <tracker.github.username>`
+- 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，会自动按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - 每个角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
 
 ## 可执行工作流

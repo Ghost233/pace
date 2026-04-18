@@ -151,9 +151,27 @@ function loadMergedConfig(cwd, env, scriptFilename) {
   };
 }
 
+function loadSession(cwd) {
+  const sessionPath = path.resolve(cwd, '.pace', 'session.yaml');
+  if (!fs.existsSync(sessionPath)) {
+    return {
+      sessionPath,
+      exists: false,
+      data: null,
+    };
+  }
+
+  return {
+    sessionPath,
+    exists: true,
+    data: parseYaml(fs.readFileSync(sessionPath, 'utf8')),
+  };
+}
+
 module.exports = {
   dumpYaml,
   deepMerge,
   loadMergedConfig,
+  loadSession,
   parseYaml,
 };

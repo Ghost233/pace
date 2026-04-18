@@ -69,8 +69,8 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 **重要：**
 
-- 在后续任何需要调用 `gh` 命令的 skill 中，执行前必须先检查当前 gh 用户是否与 config 中的 `username` 一致。
-- 所有 GitHub 命令前都要先执行：
+- 在后续任何需要调用 GitHub 的 skill 或 role 中，优先使用 `pace-gh`；它会按 `.pace/session.yaml` 自动切换到配置中的 GitHub 用户。
+- 如果直接使用原生 `gh`，执行前必须先检查当前 gh 用户是否与配置中的 `username` 一致，并手工执行：
   `gh auth switch -u <tracker.github.username>`
 - 所有 git 提交都必须使用配置中的：
   - `git.name`
@@ -216,7 +216,7 @@ git 身份：{config.git.name} <{config.git.email}>
 - GitHub 验证失败时只标记状态，不阻塞配置写入
 - 不处理 gh CLI 安装，只提示
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
-- 但必须明确告诉后续角色：所有 GitHub 命令前都要先 `gh auth switch -u <tracker.github.username>`
+- 但必须明确告诉后续角色：优先使用 `pace-gh`；只有直接使用原生 `gh` 时，才需要手工 `gh auth switch -u <tracker.github.username>`
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 
 ## 后续路由

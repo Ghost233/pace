@@ -5,6 +5,8 @@
   "private": true,
   "bin": {
     "pace-merge": "./bin/pace-merge.js",
-    "pace-init": "./bin/pace-init.js"
+    "pace-init": "./bin/pace-init.js",
+    "pace-git": "./bin/pace-git.js",
+    "pace-gh": "./bin/pace-gh.js"
   }
 }

@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
-- helpers → `~/.codex/bin/pace-merge`、`~/.codex/bin/pace-init`
+- helpers → `~/.codex/bin/pace-merge`、`~/.codex/bin/pace-init`、`~/.codex/bin/pace-git`、`~/.codex/bin/pace-gh`
 
 把 `~/.codex/bin` 加进 PATH：
 
@@ -54,7 +54,7 @@ brew install gh
 gh auth login
 ```
 
-之后所有 GitHub 命令都必须先切换到目标仓库配置里指定的用户：
+如果你直接使用原生 `gh`，所有 GitHub 命令都必须先切换到目标仓库配置里指定的用户：
 
 ```bash
 gh auth switch -u <tracker.github.username>
@@ -62,12 +62,16 @@ gh auth switch -u <tracker.github.username>
 
 如果当前机器没有 `gh`，或者 `gh` 当前/指定用户无权访问目标仓库，则 GitHub 流程不能继续，必须显式提示用户去登录或切换到正确账号。
 
+如果你希望限制 GitHub 误操作，推荐只通过 `pace-gh` 访问 issue，而不要直接运行原生 `gh`。`pace-gh` 只开放受限的 issue 读取、issue 评论发送、附件下载等白名单操作，并会自动按 `.pace/session.yaml` 切换 GitHub 用户。
+
 如果流程会产出 git 提交，还必须在配置里明确指定：
 
 - `git.name`
 - `git.email`
 
 不要依赖机器上的默认全局 git 身份，尤其是在多 GitHub 账号场景下。
+
+如果你希望限制误操作，推荐只通过 `pace-git` 操作仓库，而不要直接运行原生 `git`。`pace-git` 只开放少量安全子命令，并默认拒绝危险操作；如果 session 中配置了 GitHub 用户，它也会在每次执行前自动切到对应用户。
 
 ## 快速开始
 
@@ -81,7 +85,15 @@ pace-init local
 # 或
 pace-init multica --repo <owner/repo> --github-user <username>
 
-# 3. 开始使用
+# 3. 受限 git 操作（推荐）
+pace-git status
+pace-git info
+
+# 4. 受限 GitHub 操作（推荐）
+pace-gh whoami
+pace-gh issue-read --issue 72
+
+# 5. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
 /pace:status    → 查看当前进度和下一步默认 skill
 ```
@@ -153,8 +165,8 @@ PACE 现在推荐拆成两层：
 4. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须同步到 GitHub issue；GitHub issue 必须能独立还原当前阶段的关键日志，不允许只写结论摘要。
 5. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块、阶段 comment 和阶段日志镜像才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
 6. 阶段日志过长时，必须分成多条连续 comment 上传；每条 comment 最多 6000 个字符，必须带 `第 x/n 段` 标记，并保持原文顺序。
-5. 在任何 GitHub 操作前，必须先用 `gh auth switch -u <tracker.github.username>` 切到配置中的用户；如果没有 `gh` 或该用户无权访问仓库，必须停止并明确要求用户介入。
-6. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
+7. 如果使用 `pace-gh` / `pace-git`，它们会自动按 `.pace/session.yaml` 切换 GitHub 用户；如果直接使用原生 `gh`，则必须先手工执行 `gh auth switch -u <tracker.github.username>`。如果没有 `gh` 或该用户无权访问仓库，必须停止并明确要求用户介入。
+8. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
 
 完整的 multica 落地流程、角色创建方式、阶段切换和 GitHub comment 同步规则，见 [README.multica.md](README.multica.md)。
 
@@ -192,6 +204,65 @@ pace-init multica --repo <owner/repo> --github-user <username>
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
+
+受限 git 入口：
+
+```bash
+pace-git status
+pace-git diff --staged README.md
+pace-git stage README.md bin/pace-git.js
+pace-git commit -m "docs: update workflow"
+pace-git push
+```
+
+`pace-git` 只开放白名单命令：
+
+- `status`
+- `diff`
+- `stage`
+- `unstage`
+- `commit`
+- `push`
+- `branch`
+- `log`
+- `info`
+
+不支持：
+
+- `reset`
+- `checkout`
+- `switch`
+- `rebase`
+- `merge`
+- `cherry-pick`
+- `clean`
+- `stash`
+- 强制 push
+
+受限 GitHub 入口：
+
+```bash
+pace-gh whoami
+pace-gh repo-check
+pace-gh issue-read --issue 72 --comments
+pace-gh issue-comment --issue 72 --body "已完成 discuss 阶段"
+pace-gh attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"
+```
+
+`pace-gh` 只开放白名单命令：
+
+- `whoami`
+- `repo-check`
+- `issue-read`
+- `issue-comment`
+- `attachment-download`
+
+不支持：
+
+- 任意 gh 参数透传
+- issue 删除 / 编辑 / reopen / close
+- PR 操作
+- release / workflow / repo 管理操作
 
 配置字段：
 
