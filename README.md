@@ -21,17 +21,32 @@
 ### Codex CLI
 
 ```bash
-git clone https://github.com/Ghost233/pace.git
-cp -r pace/skills/ your-project/.agents/skills/
-cp -r pace/.pace/ your-project/.pace/
+curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | bash
+```
+
+安装后，PACE 会被更新到用户目录，而不是项目目录：
+
+- skills → `~/.codex/skills/pace/`
+- helper → `~/.codex/bin/pace-merge`
+
+建议把 `~/.codex/bin` 加进 PATH：
+
+```bash
+export PATH="$HOME/.codex/bin:$PATH"
+```
+
+后续更新时，直接重复执行同一条命令即可：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | bash
 ```
 
 ## 快速开始
 
 ```bash
 # 1. 合并配置（根据执行环境选择）
-node bin/pace-merge.js local     # 本地 Claude Code
-node bin/pace-merge.js multica   # multica 编排
+pace-merge local     # 本地模式
+pace-merge multica   # multica 模式
 
 # 2. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
@@ -105,8 +120,8 @@ PACE 现在推荐拆成两层：
 合并命令：
 
 ```bash
-node bin/pace-merge.js local     # → .pace-config.yaml
-node bin/pace-merge.js multica   # → .pace-config.yaml
+pace-merge local     # → .pace-config.yaml
+pace-merge multica   # → .pace-config.yaml
 ```
 
 配置字段：
@@ -181,6 +196,7 @@ pace/
 │   ├── 验收归档经理.md
 │   └── templates/
 ├── bin/
+│   ├── install-codex.sh        # 一条命令安装到 ~/.codex
 │   └── pace-merge.js         # 配置合并脚本
 ├── README.md
 ├── README.multica.md

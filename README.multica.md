@@ -30,7 +30,7 @@
 在项目仓库根目录执行：
 
 ```bash
-node bin/pace-merge.js multica
+pace-merge multica
 ```
 
 这会生成 `.pace-config.yaml`，让当前仓库按 multica 模式运行。
@@ -88,7 +88,7 @@ roles:
 - 一个角色 agent 覆盖一个稳定阶段
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
-- 每个角色在本轮开始时都必须先运行 `node bin/pace-merge.js multica`，先锁定 `multica` 工作模式，再读取 `.pace-config.yaml` 中的 `tracker` 配置
+- 每个角色在本轮开始时都必须先运行 `pace-merge multica`，先锁定 `multica` 工作模式，再读取 `.pace-config.yaml` 中的 `tracker` 配置
 
 ## 标准流程
 
