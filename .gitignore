@@ -1,5 +1,6 @@
 .DS_Store
 node_modules/
 .pace-config.yaml
+.pace/session.yaml
 .omc/
 .omx/

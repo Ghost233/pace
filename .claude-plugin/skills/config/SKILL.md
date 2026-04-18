@@ -7,7 +7,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ## 默认约定
 
-- 配置文件路径：`.pace-config.yaml`
+- 配置文件路径：`.pace/session.yaml`
 - 如果 `.pace/` 不存在，先创建目录
 - 已有配置时，展示当前值并询问是否修改
 - 配置变更后输出摘要确认
@@ -16,25 +16,25 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ## 必需产物
 
-- `.pace-config.yaml`
+- `.pace/session.yaml`
 
 ## 最小流程
 
 ### 第一步：读取现有配置
 
-用 Read 读取 `.pace-config.yaml`。如果存在，解析并展示当前配置摘要：
+用 Read 读取 `.pace/session.yaml`；如果不存在，再回退读取 `.pace-config.yaml` 兼容旧工作区。如果配置存在，解析并展示当前配置摘要：
 
 ```
 当前配置：
-- 执行模式：{executor}
-- 追踪方式：{tracker.type}
-- GitHub 仓库：{tracker.github.repo}（{tracker.github.username}）
-- git 身份：{git.name} <{git.email}>
-- 自动补建 GitHub issue：{tracker.github.create_missing_issue}
-- 阶段 comment 同步：{tracker.github.sync_stage_comments}
-- 角色层：{roles.enabled}
-- 最大并发子代理：{agents.max_concurrent}
-- 模型档位：{agents.model_profile}
+- 执行模式：{config.executor}
+- 追踪方式：{config.tracker.type}
+- GitHub 仓库：{config.tracker.github.repo}（{config.tracker.github.username}）
+- git 身份：{config.git.name} <{config.git.email}>
+- 自动补建 GitHub issue：{config.tracker.github.create_missing_issue}
+- 阶段 comment 同步：{config.tracker.github.sync_stage_comments}
+- 角色层：{config.roles.enabled}
+- 最大并发子代理：{config.agents.max_concurrent}
+- 模型档位：{config.agents.model_profile}
 ```
 
 然后问用户是否要重新配置。如果不需要，直接结束。
@@ -138,58 +138,74 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第八步：写入配置
 
-用 Write 工具将配置写入 `.pace-config.yaml`，格式如下：
+用 Write 工具将配置写入 `.pace/session.yaml`，格式如下：
 
 ```yaml
-# PACE 工作区配置
-# 由 pace:config 生成，请勿手动编辑首行以外的注释
+# PACE 会话配置
+# 由 pace:config 生成
 
-executor: claude-code                  # claude-code | multica | manual
+config:
+  executor: claude-code                # claude-code | multica | manual
+  tracker:
+    type: local                        # local | github
+    github:
+      repo: ""                         # owner/repo
+      username: ""                     # GitHub 用户名
+      verified: false                  # gh 连通性是否已验证
+      create_missing_issue: false      # 缺失 GitHub issue URL 时是否自动创建
+      sync_stage_comments: false       # 是否在阶段边界同步 comment
+  git:
+    name: ""                           # git commit user.name
+    email: ""                          # git commit user.email
+  roles:
+    enabled: false
+    definitions_path: "roles"
+    managers:
+      dispatch: PACE-调度经理
+      issue_intake: PACE-需求接管经理
+      phase: PACE-阶段经理
+      delivery: PACE-交付经理
+      closeout: PACE-验收归档经理
+  agents:
+    max_concurrent: 3
+    model_profile: balanced
 
-tracker:
-  type: local                          # local | github
-  github:
-    repo: ""                           # owner/repo
-    username: ""                       # GitHub 用户名
-    verified: false                    # gh 连通性是否已验证
-    create_missing_issue: false        # 缺失 GitHub issue URL 时是否自动创建
-    sync_stage_comments: false         # 是否在阶段边界同步 comment
-
-git:
-  name: ""                             # git commit user.name
-  email: ""                            # git commit user.email
-
-roles:
-  enabled: false                       # 是否启用角色层
-  definitions_path: "roles"            # 角色定义目录
-  managers:
-    dispatch: PACE-调度经理
-    issue_intake: PACE-需求接管经理
-    phase: PACE-阶段经理
-    delivery: PACE-交付经理
-    closeout: PACE-验收归档经理
-
-agents:
-  max_concurrent: 3                    # 最大并行子代理数 (1-5)
-  model_profile: balanced              # quality | balanced | budget | adaptive
-  # model_overrides: {}                # 可选：按 agent 类型覆盖模型
-  #   pace-executor: opus
-  #   pace-planner: sonnet
+context:
+  issue:
+    url: ""
+    number: null
+    title: ""
+    type: ""
+  pr:
+    url: ""
+    number: null
+  git:
+    branch: ""
+    base_branch: ""
+    head_sha: ""
+  role:
+    current: ""
+    previous: ""
+  session:
+    mode: ""
+    started_at: ""
 ```
+
+如果原来的 `.pace/session.yaml` 已存在，写入时保留原有 `context` 区块，除非用户明确要求一起覆盖当前 issue / PR / branch / role。
 
 ### 第九步：输出确认摘要
 
 ```
-配置已保存到 .pace-config.yaml
+配置已保存到 .pace/session.yaml
 
-执行模式：{executor}
-追踪方式：{type}
-{如果是 GitHub：GitHub 仓库：{repo}（{username}）验证状态：{verified}}
-git 身份：{git_name} <{git_email}>
-{如果是 GitHub：自动补建 issue：{create_missing_issue}；阶段 comment 同步：{sync_stage_comments}}
-角色层：{roles.enabled}
-最大并发子代理：{max_concurrent}
-模型档位：{model_profile}
+执行模式：{config.executor}
+追踪方式：{config.tracker.type}
+{如果是 GitHub：GitHub 仓库：{config.tracker.github.repo}（{config.tracker.github.username}）验证状态：{config.tracker.github.verified}}
+git 身份：{config.git.name} <{config.git.email}>
+{如果是 GitHub：自动补建 issue：{config.tracker.github.create_missing_issue}；阶段 comment 同步：{config.tracker.github.sync_stage_comments}}
+角色层：{config.roles.enabled}
+最大并发子代理：{config.agents.max_concurrent}
+模型档位：{config.agents.model_profile}
 {如果有覆盖：模型覆盖：{overrides}}
 ```
 

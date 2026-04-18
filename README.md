@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
-- helper → `~/.codex/bin/pace-merge`
+- helpers → `~/.codex/bin/pace-merge`、`~/.codex/bin/pace-init`
 
 把 `~/.codex/bin` 加进 PATH：
 
@@ -76,7 +76,12 @@ gh auth switch -u <tracker.github.username>
 pace-merge local     # 本地模式
 pace-merge multica   # multica 模式
 
-# 2. 开始使用
+# 2. 初始化当前会话
+pace-init local
+# 或
+pace-init multica --repo <owner/repo> --github-user <username>
+
+# 3. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
 /pace:status    → 查看当前进度和下一步默认 skill
 ```
@@ -155,7 +160,14 @@ PACE 现在推荐拆成两层：
 
 ## 配置
 
-配置文件位于 `.pace/` 目录下，支持分层合并：
+PACE 现在区分两类文件：
+
+- 模板配置：`.pace/config.yaml`、`.pace/config.local.yaml`、`.pace/config.multica.yaml`
+- 会话配置：`.pace/session.yaml`
+
+模板配置用于提供默认值，会话配置用于提供“本次运行的真实输入”，包括 issue、PR、分支、当前角色等上下文。
+
+模板文件位于 `.pace/` 目录下，支持分层合并：
 
 ```
 .pace/
@@ -170,6 +182,15 @@ PACE 现在推荐拆成两层：
 pace-merge local     # → .pace-config.yaml
 pace-merge multica   # → .pace-config.yaml
 ```
+
+推荐入口：
+
+```bash
+pace-init local
+pace-init multica --repo <owner/repo> --github-user <username>
+```
+
+`pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
 
 配置字段：
 
@@ -205,6 +226,42 @@ roles:
 agents:
   max_concurrent: 3      # 最大并行数 (1-5)
   model_profile: balanced # quality | balanced | budget | adaptive
+```
+
+会话文件字段：
+
+```yaml
+config:
+  executor: multica
+  tracker:
+    type: github
+    github:
+      repo: owner/repo
+      username: your-username
+      verified: true
+  git:
+    name: Your Name
+    email: you@example.com
+
+context:
+  issue:
+    url: https://github.com/owner/repo/issues/123
+    number: 123
+    title: 问题标题
+    type: bug
+  pr:
+    url: ""
+    number: null
+  git:
+    branch: fix-branch
+    base_branch: main
+    head_sha: abcdef
+  role:
+    current: PACE-需求接管经理
+    previous: ""
+  session:
+    mode: multica
+    started_at: 2026-04-18T12:34:56.000Z
 ```
 
 ## 卸载

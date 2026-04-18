@@ -9,7 +9,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取以下配置并应用于后续流程：
+执行任何操作前，先读取 `.pace/session.yaml`；如果不存在，再回退读取 `.pace-config.yaml` 兼容旧工作区。如果两个文件都不存在，提示用户先运行 `pace-init local`、`pace-init multica` 或 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果配置文件存在，提取以下配置并应用于后续流程：
 - `agents.max_concurrent`：直接控制每个 wave 的子代理并行数上限
 - `agents.model_profile`：子代理模型选择档位，分配子代理时使用对应的 model 参数
 - `agents.model_overrides`：特定 agent 类型的模型覆盖

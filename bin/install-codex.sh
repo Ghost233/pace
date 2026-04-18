@@ -41,7 +41,7 @@ SOURCE_ROOT="$(load_source)"
 
 SKILLS_SRC="$SOURCE_ROOT/.claude-plugin/skills"
 PACE_CONFIG_SRC="$SOURCE_ROOT/.pace"
-PACE_MERGE_SRC="$SOURCE_ROOT/bin/pace-merge.js"
+PACE_BIN_SRC="$SOURCE_ROOT/bin"
 
 if [[ ! -d "$SKILLS_SRC" ]]; then
   echo "未找到技能目录: $SKILLS_SRC" >&2
@@ -53,8 +53,8 @@ if [[ ! -d "$PACE_CONFIG_SRC" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$PACE_MERGE_SRC" ]]; then
-  echo "未找到 pace-merge.js: $PACE_MERGE_SRC" >&2
+if [[ ! -d "$PACE_BIN_SRC" ]]; then
+  echo "未找到 bin 目录: $PACE_BIN_SRC" >&2
   exit 1
 fi
 
@@ -63,7 +63,7 @@ mkdir -p "$PACE_HOME" "$BIN_DIR"
 rsync -a --delete "$SKILLS_SRC/" "$PACE_HOME/"
 mkdir -p "$PACE_HOME/bin" "$PACE_HOME/.pace"
 rsync -a --delete "$PACE_CONFIG_SRC/" "$PACE_HOME/.pace/"
-install -m 755 "$PACE_MERGE_SRC" "$PACE_HOME/bin/pace-merge.js"
+rsync -a --delete "$PACE_BIN_SRC/" "$PACE_HOME/bin/"
 
 cat > "$BIN_DIR/pace-merge" <<EOF
 #!/usr/bin/env bash
@@ -72,11 +72,18 @@ exec node "$PACE_HOME/bin/pace-merge.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/pace-merge"
 
+cat > "$BIN_DIR/pace-init" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec node "$PACE_HOME/bin/pace-init.js" "\$@"
+EOF
+chmod +x "$BIN_DIR/pace-init"
+
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Helper: $BIN_DIR/pace-merge
+- Helpers: $BIN_DIR/pace-merge, $BIN_DIR/pace-init
 
 建议把以下目录加入 PATH:
 
@@ -86,4 +93,6 @@ PACE 已安装到:
 
   pace-merge local
   pace-merge multica
+  pace-init local
+  pace-init multica --repo <owner/repo> --github-user <username>
 EOF

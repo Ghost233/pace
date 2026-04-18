@@ -4,6 +4,7 @@
   "description": "PACE - Plan, Act, Check, Evolve. 轻量级 Claude Code 项目管理 Skills",
   "private": true,
   "bin": {
-    "pace-merge": "./bin/pace-merge.js"
+    "pace-merge": "./bin/pace-merge.js",
+    "pace-init": "./bin/pace-init.js"
   }
 }

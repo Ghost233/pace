@@ -30,15 +30,29 @@
 
 ## 前置准备
 
-### 1. 合并 multica 配置
+### 1. 初始化 multica 会话
 
 在项目仓库根目录执行：
 
 ```bash
-pace-merge multica
+pace-init multica \
+  --repo <owner/repo> \
+  --github-user <username> \
+  --git-name "<git name>" \
+  --git-email "<git email>" \
+  --issue-url "<issue url>" \
+  --issue-title "<issue title>" \
+  --issue-type "<bug|feature|task>" \
+  --current-role "PACE-需求接管经理"
 ```
 
-这会生成 `.pace-config.yaml`，让当前仓库按 multica 模式运行。
+这会生成 `.pace/session.yaml`，把本次 multica 运行所需的配置和上下文一次性写好。
+
+如果你只想看底层模板合并结果，才使用：
+
+```bash
+pace-merge multica
+```
 
 ### 2. 初始化 PACE 工作区
 
@@ -122,7 +136,7 @@ gh auth switch -u <tracker.github.username>
 - 一个角色 agent 覆盖一个稳定阶段
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
-- 每个角色在本轮开始时都必须先运行 `pace-merge multica`，先锁定 `multica` 工作模式，再读取 `.pace-config.yaml` 中的 `tracker` 配置
+- 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `pace-init multica` 初始化
 - 每个角色只要要执行 GitHub 命令，就必须先执行 `gh auth switch -u <tracker.github.username>`
 - 每个角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
 
@@ -185,7 +199,7 @@ tech phase 的闭环单独处理：
 它必须分析以下内容：
 
 - 当前 issue 是新需求、阶段变更、执行中阻塞，还是验收回退
-- 当前 `.pace-config.yaml` 与 tracker 配置
+- 当前 `.pace/session.yaml` 中的 config / context
 - 当前 issue 描述是否足以判断目标、当前阶段、已完成产物、下一阶段入口条件
 - 当前是否已经存在 phase / plans / execution / verification 产物
 
@@ -407,6 +421,22 @@ Multica 新建标准 issue
 
 最终 handoff / closeout comment 不要复用通用模板，必须使用上面的按角色模板。
 阶段日志镜像 comment 也不要混进最终 handoff comment，必须单独发。
+
+## 会话真相源
+
+multica 模式下，本轮执行先读：
+
+1. `.pace/session.yaml`
+2. GitHub issue 时间线
+3. `.pace/` 阶段产物
+
+其中：
+
+- `.pace/session.yaml` 负责提供本轮 config + context
+- GitHub issue 负责保存跨轮次 comment 和日志镜像
+- `.pace/` 负责保存本轮工作区产物
+
+如果 `.pace/session.yaml` 缺失，roles 必须停止并要求先运行 `pace-init multica`。
 
 ## 阶段日志同步规则
 
