@@ -11,3 +11,14 @@ tracker:
     repo: ""
     username: ""
     verified: false
+    create_missing_issue: false
+    sync_stage_comments: false
+
+roles:
+  enabled: false
+  definitions_path: "roles"
+  managers:
+    issue_intake: PACE-需求接管经理
+    phase: PACE-阶段经理
+    delivery: PACE-交付经理
+    closeout: PACE-验收归档经理

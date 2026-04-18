@@ -7,3 +7,8 @@ tracker:
     repo: "your-username/your-repo"
     username: "your-username"
     verified: false
+    create_missing_issue: true
+    sync_stage_comments: true
+
+roles:
+  enabled: true

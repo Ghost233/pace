@@ -2,6 +2,11 @@
 
 轻量级项目管理 Skills，用 phase 式工作流从需求到交付。
 
+支持两层抽象：
+
+- `skills` 负责具体动作执行
+- `roles` 负责在外部流程系统里做阶段管理、追踪同步和路由
+
 同时支持 **Claude Code** 和 **Codex CLI**。
 
 ## 安装
@@ -56,6 +61,36 @@ bootstrap → map-codebase → intake → discuss → plan → execute → verif
 | `pace:roadmap` | 维护 phase 结构 |
 | `pace:milestone` | 管理 milestone 生命周期 |
 
+## 双层架构
+
+PACE 现在推荐拆成两层：
+
+- **Skills 层**：`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify` 等，负责把某一步真正做完。
+- **Roles 层**：运行在 multica 之类的外部编排系统上，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
+
+推荐的最小角色集：
+
+| Role | 作用 |
+|------|------|
+| `PACE-需求接管经理` | 新 issue 首次接管；补齐 GitHub issue 链接；建立追踪上下文 |
+| `PACE-阶段经理` | 管 `intake → discuss → plan` 的阶段推进和边界收敛 |
+| `PACE-交付经理` | 管 `execute` 的分发、阻塞汇报和阶段交接 |
+| `PACE-验收归档经理` | 管 `verify → archive` 的验收、结案和收尾同步 |
+
+角色定义和模板位于 [`roles/`](roles/)。
+
+## Multica 追踪约束
+
+当 `executor = multica` 且 `tracker.type = github` 时，建议把以下规则视为硬约束：
+
+1. 每个新 issue 在进入 phase 流程前，必须有一个规范的 GitHub issue URL。
+2. 如果用户没有提供 GitHub issue URL，则由 `PACE-需求接管经理` 创建，并回填到当前流程系统的 issue 元数据中。
+3. 每次阶段切换至少同步一条 GitHub comment：
+   `intake`、`discuss`、`plan`、`execute`、`verify`、`archive`
+4. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块与阶段 comment 才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
+
+完整的 multica 落地流程、角色创建方式、阶段切换和 GitHub comment 同步规则，见 [README.multica.md](README.multica.md)。
+
 ## 配置
 
 配置文件位于 `.pace/` 目录下，支持分层合并：
@@ -87,6 +122,17 @@ tracker:
     repo: ""             # owner/repo
     username: ""         # GitHub 用户名
     verified: false      # gh 连通性验证
+    create_missing_issue: false
+    sync_stage_comments: false
+
+roles:
+  enabled: false
+  definitions_path: "roles"
+  managers:
+    issue_intake: PACE-需求接管经理
+    phase: PACE-阶段经理
+    delivery: PACE-交付经理
+    closeout: PACE-验收归档经理
 
 # 子代理设置
 agents:
@@ -127,13 +173,17 @@ pace/
 │   ├── config.yaml
 │   ├── config.local.yaml
 │   └── config.multica.yaml
+├── roles/                    # 给 multica 等外部编排系统使用的角色定义
+│   ├── README.md
+│   ├── 需求接管经理.md
+│   ├── 阶段经理.md
+│   ├── 交付经理.md
+│   ├── 验收归档经理.md
+│   └── templates/
 ├── bin/
 │   └── pace-merge.js         # 配置合并脚本
 ├── README.md
-└── package.json
-│   ├── status/
-│   └── verify/
-├── README.md
+├── README.multica.md
 └── package.json
 ```
 
