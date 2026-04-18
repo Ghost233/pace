@@ -10,5 +10,9 @@ tracker:
     create_missing_issue: true
     sync_stage_comments: true
 
+git:
+  name: "Your Name"
+  email: "you@example.com"
+
 roles:
   enabled: true

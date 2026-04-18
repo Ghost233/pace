@@ -7,7 +7,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
 ## 默认约定
 
@@ -18,7 +18,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 ## 必需产物
 
 - `.pace/archive/` 下的 phase 归档目录
-- 更新后的 `index.md`
+- 更新后的 `.pace/archive/index.md`
 - 更新后的 `.pace/state.md`
 
 ## 最小归档集合
@@ -31,7 +31,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 
 ## 索引字段
 
-`index.md` 至少记录：
+`.pace/archive/index.md` 至少记录：
 
 - archive id
 - source path
@@ -46,4 +46,4 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 
 ## 后续路由
 
-phase 归档后，如需继续推进后续 phase，可转到 discuss 或 plan。
+phase 归档后，若后续 phase 缺 `context.md`，默认路由 `pace:discuss`；若已有 `context.md` 但缺 `plans/`，默认路由 `pace:plan`。

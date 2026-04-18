@@ -9,7 +9,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取以下配置并应用于后续流程：
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取以下配置并应用于后续流程：
 - `agents.max_concurrent`：直接控制每个 wave 的子代理并行数上限
 - `agents.model_profile`：子代理模型选择档位，分配子代理时使用对应的 model 参数
 - `agents.model_overrides`：特定 agent 类型的模型覆盖
@@ -155,7 +155,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 
 ### 上下文恢复
 
-当主代理完成一个 wave 的所有子代理后，如果感觉上下文开始变大：
+当主代理完成一个 wave 的所有子代理后，如果要继续下一个 wave：
 
 1. 将当前执行进度写入 execution-log.md（已经做了）
 2. 将 coverage.md 写入磁盘（已经做了）
@@ -184,7 +184,7 @@ execute 只负责执行当前 phase 的 plans。每个 phase 必须经过 discus
 - 本 phase 完成 plan 数 / 总 plan 数
 - 失败重试次数
 - coverage 完成率
-- 推荐下一步：`pace:discuss`（下一个 phase）或 `pace:archive`（归档当前 phase）
+- 推荐下一步：`pace:verify`
 
 ## Run Summary 标准
 
@@ -197,7 +197,7 @@ execute 只负责执行当前 phase 的 plans。每个 phase 必须经过 discus
 - 执行过程中的 deviations
 - 剩余风险或 follow-ups
 
-优先使用：
+使用：
 
 - `templates/run.template.md`
 
@@ -209,7 +209,7 @@ execute 只负责执行当前 phase 的 plans。每个 phase 必须经过 discus
 - plan 明确写出的 verification steps
 - `context.md` 中的 locked decisions
 
-优先使用具体检查：
+默认使用以下具体检查：
 
 - 定向测试
 - typecheck
@@ -225,7 +225,4 @@ execute 只负责执行当前 phase 的 plans。每个 phase 必须经过 discus
 
 ## 后续路由
 
-当某个 phase 的所有 plans 都完成后，下一步通常是：
-
-- 下一个 phase 的 `pace:discuss` 或 `pace:plan`
-- 如果要关闭 phase 或 milestone，则进入 `pace:archive`
+当某个 phase 的所有 plans 都完成后，默认下一步是 `pace:verify`。只有用户明确要求处理其他目标时，才偏离此路由。

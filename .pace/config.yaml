@@ -14,10 +14,15 @@ tracker:
     create_missing_issue: false
     sync_stage_comments: false
 
+git:
+  name: ""
+  email: ""
+
 roles:
   enabled: false
   definitions_path: "roles"
   managers:
+    dispatch: PACE-调度经理
     issue_intake: PACE-需求接管经理
     phase: PACE-阶段经理
     delivery: PACE-交付经理

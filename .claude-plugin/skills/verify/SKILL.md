@@ -7,7 +7,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
 ## 默认约定
 
@@ -23,7 +23,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - `.pace/phases/<phase>/verification.md`
 - 更新后的 `.pace/state.md`
 
-优先使用：
+使用：
 
 - `templates/verification.template.md`
 
@@ -53,7 +53,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 
 ## 验证手段
 
-优先使用这些检查：
+默认使用这些检查：
 
 - 定向测试
 - typecheck
@@ -78,7 +78,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - failed or uncertain items
 - recommended next step
 
-推荐 verdict：
+`overall verdict` 只允许：
 
 - `pass`
 - `partial`
@@ -86,9 +86,9 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 
 ## 路由规则
 
-- `pass`：通常进入 `pace:archive` 或下一 phase
-- `partial`：通常回到 `pace:plan` 或 `pace:execute`
-- `fail`：必须明确指出失败点，并建议先修复再验证
+- `pass`：默认进入 `pace:archive`
+- `partial`：默认进入 `pace:plan`
+- `fail`：默认进入 `pace:execute`，修复后再回 `pace:verify`
 
 ## 边界
 

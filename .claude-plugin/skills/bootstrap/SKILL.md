@@ -1,19 +1,19 @@
 ---
 name: pace:bootstrap
-description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或 brownfield，必要时先路由到代码库映射，再创建 project、requirements、roadmap seed 和 state。当用户想在当前仓库启动一套新的轻量 workflow（而非维护已有 phase 结构）时触发。
+description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或 brownfield；若是 brownfield 且缺少代码地图，则先路由到代码库映射，再创建 project、requirements、roadmap seed 和 state。当用户想在当前仓库启动一套新的轻量 workflow（而非维护已有 phase 结构）时触发。
 ---
 
 # PACE Bootstrap
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
 ## 默认约定
 
 - 所有工作流产物写入 `.pace/`
 - 除非用户明确要求迁移，否则不要修改现有 `.planning/`
-- brownfield 且缺少代码地图时，优先路由到 `pace:map-codebase`
+- brownfield 且 `.pace/codebase/` 不存在时，`Recommended Next Skill` 必须写为 `pace:map-codebase`
 - bootstrap 只做初始化，不做后续 roadmap 维护
 
 ## 必需产物
@@ -23,7 +23,7 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 - `.pace/roadmap.md`
 - `.pace/state.md`
 
-优先使用：
+使用：
 
 - `templates/project.template.md`
 - `templates/requirements.template.md`
@@ -33,7 +33,7 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 ## 最小流程
 
 1. 判断当前仓库是 greenfield 还是 brownfield
-2. 若是 brownfield 且无代码地图，建议先运行 `pace:map-codebase`
+2. 若是 brownfield 且无代码地图，`Recommended Next Skill` 必须写为 `pace:map-codebase`
 3. 获取项目简述
 4. 写 `project.md`
 5. 写 `requirements.md`
@@ -55,7 +55,7 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 - 稳定的 requirement ID
 - 简短验收口径
 
-`roadmap.md` 在 bootstrap 阶段只要写到足够支持后续路由：
+`roadmap.md` 在 bootstrap 阶段至少必须包含：
 
 - Phase ID
 - Title
@@ -64,6 +64,8 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 - Requirements
 - Depends On
 - Status
+
+至少存在 1 个 phase，且每个 phase 必须完整填写以上字段，否则 bootstrap 不算完成。
 
 Type 规则：
 - 代码映射、环境搭建等技术前置 phase 标记为 `tech`

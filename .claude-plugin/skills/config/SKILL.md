@@ -11,7 +11,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - 如果 `.pace/` 不存在，先创建目录
 - 已有配置时，展示当前值并询问是否修改
 - 配置变更后输出摘要确认
-- 若用户运行在 multica 等外部编排系统上，优先开启 roles 配置
+- 当 `tracker.type=github` 且用户明确说明运行在外部编排系统时，默认开启 roles 配置
 
 ## 必需产物
 
@@ -27,6 +27,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 当前配置：
 - 追踪方式：{tracker.type}
 - GitHub 仓库：{tracker.github.repo}（{tracker.github.username}）
+- git 身份：{git.name} <{git.email}>
 - 自动补建 GitHub issue：{tracker.github.create_missing_issue}
 - 阶段 comment 同步：{tracker.github.sync_stage_comments}
 - 角色层：{roles.enabled}
@@ -47,15 +48,30 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 1. 用 AskUserQuestion 询问 `owner/repo` 格式的仓库名
 2. 用 AskUserQuestion 询问 GitHub 用户名
-3. 用 Bash 运行 `which gh` 检查 gh CLI 是否安装
+3. 用 AskUserQuestion 询问 git commit 使用的名字
+4. 用 AskUserQuestion 询问 git commit 使用的邮箱
+5. 用 Bash 运行 `which gh` 检查 gh CLI 是否安装
    - 未安装：提示用户安装（`brew install gh` 或参考 https://cli.github.com/），然后跳过验证，标记 `verified: false`
    - 已安装：继续验证
-4. 用 Bash 运行 `gh auth status` 检查当前登录状态
+6. 用 Bash 运行 `gh auth status` 检查当前登录状态
    - 未登录：提示运行 `gh auth login`，标记 `verified: false`
    - 已登录但用户不匹配：提示运行 `gh auth switch` 切换到配置的用户，标记 `verified: false`
    - 已登录且用户匹配：标记 `verified: true`
 
-**重要：** 在后续任何需要调用 `gh` 命令的 skill 中，执行前必须先检查当前 gh 用户是否与 config 中的 username 一致。如果不一致，提示用户先执行 `gh auth switch`。
+**重要：**
+
+- 在后续任何需要调用 `gh` 命令的 skill 中，执行前必须先检查当前 gh 用户是否与 config 中的 `username` 一致。
+- 所有 GitHub 命令前都要先执行：
+  `gh auth switch -u <tracker.github.username>`
+- 所有 git 提交都必须使用配置中的：
+  - `git.name`
+  - `git.email`
+- 如果没有 `gh`、没有登录、或者指定用户无权访问目标仓库，则必须停止当前 GitHub 流程，并明确提示用户：
+  - 先安装 `gh`
+  - 先执行 `gh auth login`
+  - 或切换到 `tracker.github.username`
+- GitHub 不可达时，不能假装继续创建 issue / comment。
+- 如果 `git.name` / `git.email` 未配置，也不能假装继续进入需要提交的流程。
 
 ### 第三步补充（仅 GitHub 模式）：配置同步策略
 
@@ -64,12 +80,12 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - 是否在缺失 GitHub issue URL 时自动创建 issue
 - 是否在每个阶段边界自动同步 comment
 
-推荐：
+默认值：
 
 - `create_missing_issue: true`
 - `sync_stage_comments: true`
 
-如果用户明确说只做本地追踪，再关闭。
+只有当用户明确说只做本地追踪时，才关闭这两个开关。
 
 ### 第四步：配置角色层
 
@@ -80,6 +96,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 如果开启，写入默认 managers：
 
+- `dispatch: PACE-调度经理`
 - `issue_intake: PACE-需求接管经理`
 - `phase: PACE-阶段经理`
 - `delivery: PACE-交付经理`
@@ -104,9 +121,9 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - **budget** — 规划用 Sonnet，执行和研究用 Haiku，成本最低
 - **adaptive** — 根据任务复杂度自动选择，规划类用 Opus，其余用 Sonnet
 
-### 第七步（可选）：按 agent 覆盖模型
+### 第七步（按需）：按 agent 覆盖模型
 
-询问用户是否需要为特定 agent 指定不同模型。如果需要，询问 agent 名称和模型。
+仅当用户明确要求按 agent 覆盖模型时，才执行这一步；否则写入空 `model_overrides` 并跳过。
 
 常见 agent 类型：pace-executor, pace-planner, pace-verifier, pace-phase-researcher, pace-code-reviewer
 
@@ -127,10 +144,15 @@ tracker:
     create_missing_issue: false        # 缺失 GitHub issue URL 时是否自动创建
     sync_stage_comments: false         # 是否在阶段边界同步 comment
 
+git:
+  name: ""                             # git commit user.name
+  email: ""                            # git commit user.email
+
 roles:
   enabled: false                       # 是否启用角色层
   definitions_path: "roles"            # 角色定义目录
   managers:
+    dispatch: PACE-调度经理
     issue_intake: PACE-需求接管经理
     phase: PACE-阶段经理
     delivery: PACE-交付经理
@@ -151,6 +173,7 @@ agents:
 
 追踪方式：{type}
 {如果是 GitHub：GitHub 仓库：{repo}（{username}）验证状态：{verified}}
+git 身份：{git_name} <{git_email}>
 {如果是 GitHub：自动补建 issue：{create_missing_issue}；阶段 comment 同步：{sync_stage_comments}}
 角色层：{roles.enabled}
 最大并发子代理：{max_concurrent}
@@ -165,6 +188,8 @@ agents:
 - GitHub 验证失败时只标记状态，不阻塞配置写入
 - 不处理 gh CLI 安装，只提示
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
+- 但必须明确告诉后续角色：所有 GitHub 命令前都要先 `gh auth switch -u <tracker.github.username>`
+- 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 
 ## 后续路由
 

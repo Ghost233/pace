@@ -7,7 +7,7 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 
 ## 配置读取
 
-执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置，然后使用默认值继续。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动研究子代理和审查子代理时使用对应的 model 参数。
+执行任何操作前，先读取 `.pace-config.yaml`。如果文件不存在，提示用户先运行 `pace:config` 初始化配置；本次执行仅使用以下固定默认值继续：`tracker.type=local`、`agents.max_concurrent=1`、`agents.model_profile=balanced`、`agents.model_overrides={}`。如果文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动研究子代理和审查子代理时使用对应的 model 参数。
 
 ## 默认约定
 
@@ -22,7 +22,7 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 - `.pace/phases/<phase>/discussion-log.md`
 - `.pace/phases/<phase>/coverage.md`
 
-优先使用：
+使用：
 
 - `templates/context.template.md`
 - `templates/discussion-log.template.md`
@@ -36,7 +36,7 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 1. 从 roadmap 解析当前 phase
 2. 读取 prior context，避免重复提问
 3. 如有代码地图，做轻量 scout
-4. 只识别会改变结果的 gray areas
+4. 只识别会改变 `scope`、`acceptance`、`dependency`、`data model` 或 `external integration` 的 gray areas；纯文案偏好和实现细节不列为 gray area
 5. 对需要技术调查的 gray area，启动**研究子代理**：
    - 触发条件：涉及不熟悉的技术栈、库选型对比、SOTA 判断、架构模式验证
    - 将 phase goal、相关 requirements、代码地图（如有）发给研究子代理
@@ -45,11 +45,11 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
      - 主流架构模式及适用场景
      - 常见陷阱和"不要自己造"的轮子
      - Claude 训练数据可能过时的部分（以官方文档为准）
-   - 研究结果直接注入对应 gray area 的选项分析，作为步骤 6 中"建议选择"和"不推荐原因"的依据
+   - 研究结果直接注入对应 gray area 的选项分析，作为步骤 6 中“推荐选项”和“不推荐原因”的依据
    - 不需要调查的 gray area（纯业务逻辑、用户偏好等）跳过此步骤
 6. 将每个 gray area 的选项整理后**呈现给用户**，每个选项必须包含：
    - 选项描述
-   - **建议选择**：基于代码分析和上下文，给出推荐选项及原因
+   - **推荐选项**：基于代码分析和上下文，给出推荐选项及原因
    - **其他选项不推荐的原因**：简要说明每个未推荐选项为什么不合适（基于代码分析或研究结果）
 7. 基于用户回复形成 Locked Decisions
 8. 用户可以只回答部分问题、变更部分选项，接受增量式答复
@@ -106,7 +106,7 @@ discuss 完成后，必须在对话中输出以下内容：
 - `Locked Decisions` 已形成，且每个决策都来自用户选择而非自行推断
 - `Phase Boundary` 已明确
 - `Deferred Ideas` 已隔离
-- `References` 足够支撑下游 planning
+- `References` 已能支撑下游 planning
 - planner 读完 `context.md` 后不需要再反向问同类问题
 
 ## 边界
@@ -119,4 +119,4 @@ discuss 完成后，必须在对话中输出以下内容：
 
 ## 后续路由
 
-成功完成 discuss 后，下一步通常是 `pace:plan`。
+成功完成 discuss 后，默认下一步是 `pace:plan`；只有用户明确指定其他目标时才偏离该路由。
