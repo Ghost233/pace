@@ -83,10 +83,17 @@ pace-merge multica   # multica 模式
 
 ## 工作流
 
-```
-bootstrap → map-codebase → intake → discuss → plan → execute → verify → archive
-                                                    ↑              │
-                                                    └──────────────┘
+```text
+初始化闭环：
+bootstrap → status
+
+tech phase：
+roadmap/status → owner_skill → verify → archive
+
+requirement phase：
+intake → discuss → plan → execute → verify → archive
+                          ↑                    │
+                          └────────────────────┘
 ```
 
 | Skill | 作用 |
@@ -109,7 +116,7 @@ bootstrap → map-codebase → intake → discuss → plan → execute → verif
 PACE 现在推荐拆成两层：
 
 - **Skills 层**：`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify` 等，负责把某一步真正做完。
-- **Roles 层**：运行在 multica 之类的外部编排系统上，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
+- **Roles 层**：只用于 `executor=multica` 且 `tracker.type=github` 的 requirement phase，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
 
 推荐的最小角色集：
 
@@ -123,6 +130,13 @@ PACE 现在推荐拆成两层：
 
 角色定义和模板位于 [`roles/`](roles/)。
 
+确定性边界：
+
+- `tech` phase 不走 roles 链路；它只由 roadmap 中声明的 `Owner Skill` 执行，然后进入 `pace:verify` 与 `pace:archive`
+- `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `status / verify / archive` 无法确定它是否完成
+- `requirement` phase 才进入 `PACE-需求接管经理 → PACE-阶段经理 → PACE-交付经理 → PACE-验收归档经理`
+- `PACE-调度经理` 只在入口冲突、状态冲突或回退时使用，不是标准新 issue 的第一站
+
 ## Multica 追踪约束
 
 当 `executor = multica` 且 `tracker.type = github` 时，以下规则是硬约束：
@@ -131,7 +145,9 @@ PACE 现在推荐拆成两层：
 2. 如果用户没有提供 GitHub issue URL，则由 `PACE-需求接管经理` 创建，并回填到当前流程系统的 issue 元数据中。
 3. 每次阶段切换至少同步一条 GitHub comment：
    `intake`、`discuss`、`plan`、`execute`、`verify`、`archive`
-4. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块与阶段 comment 才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
+4. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须同步到 GitHub issue；GitHub issue 必须能独立还原当前阶段的关键日志，不允许只写结论摘要。
+5. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块、阶段 comment 和阶段日志镜像才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
+6. 阶段日志过长时，必须分成多条连续 comment 上传；每条 comment 最多 6000 个字符，必须带 `第 x/n 段` 标记，并保持原文顺序。
 5. 在任何 GitHub 操作前，必须先用 `gh auth switch -u <tracker.github.username>` 切到配置中的用户；如果没有 `gh` 或该用户无权访问仓库，必须停止并明确要求用户介入。
 6. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
 

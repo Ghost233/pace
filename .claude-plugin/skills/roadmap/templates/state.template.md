@@ -19,7 +19,7 @@
 
 ## Recommended Next Skill
 
-- pace-...
+- pace:...
 
 ## Known Blockers
 

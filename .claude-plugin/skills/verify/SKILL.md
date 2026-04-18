@@ -35,21 +35,26 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - plan objective 是否兑现
 - locked decisions 是否被遵守
 - 关键 checks 是否通过
+- 如果当前 phase `Type = tech`，则验证 `Owner Skill` 产物是否满足 `Done Criteria`
 
 ## 验证流程
 
 1. 解析目标 phase
 2. 读取该 phase 的 roadmap goal
-3. 汇总该 phase 的 plans 与 runs
-4. 若存在 `context.md`，提取 locked decisions
-5. 若存在 `coverage.md`，检查是否有 Status != `done` 的行
-6. 对照以下五类事实做验证：
+3. 如果当前 phase `Type = tech`，同时读取该 phase 的 `Expected Outputs` 与 `Done Criteria`
+4. 汇总该 phase 的 plans 与 runs
+5. 若存在 `context.md`，提取 locked decisions
+6. 若存在 `coverage.md`，检查是否有 Status != `done` 的行
+7. 对照以下五类事实做验证：
    - roadmap goal
    - plan objectives
    - locked decisions
    - coverage.md 全覆盖
    - automated checks
-7. 输出通过、失败或部分通过结论
+8. 如果当前 phase `Type = tech`，还必须核查：
+   - `Expected Outputs` 中列出的路径全部存在
+   - `Done Criteria` 中每一条都能在证据中找到对应结论
+9. 输出通过、失败或部分通过结论
 
 ## 验证手段
 
@@ -72,13 +77,14 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 `verification.md` 至少包含：
 
 - phase
-- overall verdict
+- final_status
+- blocking_gaps
 - checks run
 - evidence
 - failed or uncertain items
 - recommended next step
 
-`overall verdict` 只允许：
+`final_status` 只允许：
 
 - `pass`
 - `partial`
@@ -87,7 +93,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 ## 路由规则
 
 - `pass`：默认进入 `pace:archive`
-- `partial`：默认进入 `pace:plan`
+- `partial`：若问题属于计划覆盖不足，进入 `pace:plan`；若问题属于实现未完成，进入 `pace:execute`
 - `fail`：默认进入 `pace:execute`，修复后再回 `pace:verify`
 
 ## 边界

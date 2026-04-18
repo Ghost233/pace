@@ -13,17 +13,20 @@
 - 仓库里已经接入了 PACE
 - 你准备用 multica 来承载外部流程编排
 - `skills` 负责执行动作
-- `roles` 负责阶段管理、handoff 和 GitHub 同步
+- `roles` 负责 requirement phase 的阶段管理、handoff 和 GitHub 同步
 
 ## 核心原则
 
 1. 必须先读取 `tracker.type`，再判断当前工作的真相源。
 2. 当 `tracker.type = github` 时，GitHub issue 的追踪块与阶段 comment 是跨轮次唯一真相源；`.pace/` 只是当前工作区的本地产物，不保证下轮还在。
+3. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须镜像到 GitHub issue；不能只同步 handoff 摘要。
 3. Multica issue 是流程入口和协作面。
 4. GitHub issue 是外部追踪时间线。
 5. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
 6. 只要要访问 GitHub，就必须先安装 `gh`、确认已登录，并在每次 GitHub 命令前先执行 `gh auth switch -u <tracker.github.username>`。
 7. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
+8. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+9. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -121,6 +124,31 @@ gh auth switch -u <tracker.github.username>
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
 - 每个角色在本轮开始时都必须先运行 `pace-merge multica`，先锁定 `multica` 工作模式，再读取 `.pace-config.yaml` 中的 `tracker` 配置
 - 每个角色只要要执行 GitHub 命令，就必须先执行 `gh auth switch -u <tracker.github.username>`
+- 每个角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
+
+## 可执行工作流
+
+PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
+
+1. `PACE-需求接管经理`
+   条件：issue 尚无追踪块或 GitHub issue URL
+   产物：tracking block、tracking-init comment、归类结果、追踪块日志镜像
+2. `PACE-阶段经理`
+   条件：requirement 信息已接管，但 `context.md` 或 checker 通过的 `plans/` 尚未齐备
+   产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、阶段 comment、阶段日志镜像
+3. `PACE-交付经理`
+   条件：checker 通过的 `plans/` 已存在，且 `execution-log.md` 尚未完成
+   产物：`execution-log.md`、`runs/`、`coverage.md`、execute comment、执行日志镜像
+4. `PACE-验收归档经理`
+   条件：执行已完成，进入 verify/archive
+   产物：`verification.md`、archive comment、归档结论、验证/归档日志镜像
+
+tech phase 的闭环单独处理：
+
+1. `pace:status` 或 `pace:roadmap` 识别当前 phase `Type = tech`
+2. 执行 roadmap 中声明的 `Owner Skill`
+3. 进入 `pace:verify`
+4. 验证通过后进入 `pace:archive`
 
 ## 标准流程
 
@@ -233,6 +261,10 @@ pace:intake -> pace:discuss -> pace:plan
    - intake comment
    - discuss comment
    - plan comment
+5. 同步以下阶段日志到 GitHub issue：
+   - intake：受影响的 requirement 条目、受影响的 roadmap phase 条目
+   - discuss：`discussion-log.md`、`context.md`、`coverage.md`
+   - plan：全部 plan 文件、更新后的 `coverage.md`
 
 如果这一阶段仍存在未决项，不允许进入执行阶段。
 
@@ -260,6 +292,10 @@ pace:execute
    - 每完成一个 plan task
    - 出现 blocker 或需要回退
    - execute 完成
+5. 同步以下执行日志到 GitHub issue：
+   - `execution-log.md`
+   - 每个 `run summary`
+   - execute 阶段更新后的 `coverage.md`
 
 comment 重点写：
 
@@ -301,6 +337,20 @@ GitHub issue 上至少补两条最终 comment：
 - `verify` comment
 - `archive` comment
 
+同时必须同步以下日志：
+
+- `verification.md`
+- `.pace/archive/index.md` 中当前 phase 对应条目
+
+角色最终 comment 模板：
+
+- 调度经理：[`roles/templates/dispatch-final-comment.template.md`](roles/templates/dispatch-final-comment.template.md)
+- 需求接管经理：[`roles/templates/issue-intake-final-comment.template.md`](roles/templates/issue-intake-final-comment.template.md)
+- 阶段经理：[`roles/templates/phase-final-comment.template.md`](roles/templates/phase-final-comment.template.md)
+- 交付经理：[`roles/templates/delivery-final-comment.template.md`](roles/templates/delivery-final-comment.template.md)
+- 验收归档经理 verify：[`roles/templates/closeout-verify-comment.template.md`](roles/templates/closeout-verify-comment.template.md)
+- 验收归档经理 archive：[`roles/templates/closeout-archive-comment.template.md`](roles/templates/closeout-archive-comment.template.md)
+
 如果验证失败：
 
 - scope 不变 -> 退回 `PACE-交付经理`
@@ -336,10 +386,41 @@ Multica 新建标准 issue
 5. `verify`
 6. `archive`
 
-统一模板可以用：
+下面这些阶段日志镜像也是硬要求：
+
+1. `tracking block`
+2. intake 影响到的 `requirements.md` / `roadmap.md` 条目
+3. `discussion-log.md`
+4. `context.md`
+5. `coverage.md`
+6. 全部 plan 文件
+7. `execution-log.md`
+8. 全部 `run summary`
+9. `verification.md`
+10. 当前 phase 的 archive 条目
+
+中间阶段 comment 与 tracking block 可以用：
 
 - [`roles/templates/github-issue-comment.template.md`](roles/templates/github-issue-comment.template.md)
 - [`roles/templates/tracking-block.template.md`](roles/templates/tracking-block.template.md)
+- [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
+
+最终 handoff / closeout comment 不要复用通用模板，必须使用上面的按角色模板。
+阶段日志镜像 comment 也不要混进最终 handoff comment，必须单独发。
+
+## 阶段日志同步规则
+
+当某个阶段日志文件被创建或更新后，必须在当前 issue 里追加对应日志 comment。
+
+同步规则：
+
+1. 日志 comment 必须使用 [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
+2. 同步模式固定为“全文镜像”，不能只写摘要
+3. 单条 comment 最多 6000 个字符
+4. 超过 6000 个字符时，必须拆成多条连续 comment，标题写成 `第 x/n 段`
+5. 分段必须保持原文顺序，不能重排内容
+6. 每条日志 comment 都必须写明源文件路径
+7. 最终 handoff comment 只能引用这些日志 comment，不能替代这些日志 comment
 
 ## 一条完整示例
 

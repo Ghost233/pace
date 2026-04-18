@@ -11,7 +11,8 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - 如果 `.pace/` 不存在，先创建目录
 - 已有配置时，展示当前值并询问是否修改
 - 配置变更后输出摘要确认
-- 当 `tracker.type=github` 且用户明确说明运行在外部编排系统时，默认开启 roles 配置
+- 当用户明确说明运行在外部编排系统时，`executor` 必须写为 `multica`
+- 当 `tracker.type=github` 且 `executor=multica` 时，默认开启 roles 配置
 
 ## 必需产物
 
@@ -25,6 +26,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ```
 当前配置：
+- 执行模式：{executor}
 - 追踪方式：{tracker.type}
 - GitHub 仓库：{tracker.github.repo}（{tracker.github.username}）
 - git 身份：{git.name} <{git.email}>
@@ -43,6 +45,13 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 - **本地** — 所有工作日志保存在 `.pace/` 目录，不依赖外部服务
 - **GitHub Issues** — 将工作日志同步到 GitHub Issues，支持层级结构（Project → Phase → Wave）
+
+### 第二步补充：选择执行模式
+
+用 AskUserQuestion 询问：
+
+- **本地执行** — `executor=claude-code`，主要依赖本地 skills 推进
+- **外部编排** — `executor=multica`，由 roles 管理阶段推进和 GitHub 同步
 
 ### 第三步（仅 GitHub 模式）：配置 GitHub
 
@@ -135,6 +144,8 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 # PACE 工作区配置
 # 由 pace:config 生成，请勿手动编辑首行以外的注释
 
+executor: claude-code                  # claude-code | multica | manual
+
 tracker:
   type: local                          # local | github
   github:
@@ -171,6 +182,7 @@ agents:
 ```
 配置已保存到 .pace-config.yaml
 
+执行模式：{executor}
 追踪方式：{type}
 {如果是 GitHub：GitHub 仓库：{repo}（{username}）验证状态：{verified}}
 git 身份：{git_name} <{git_email}>

@@ -14,6 +14,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - 只做 phase 级归档
 - 归档位置为 `.pace/archive/`
 - 保留活跃项目级文件
+- 先读取 `.pace/roadmap.md`，确认当前 phase 的 `Type`
 
 ## 必需产物
 
@@ -23,11 +24,15 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 
 ## 最小归档集合
 
-- `.pace/phases/<phase>/context.md`
-- `.pace/phases/<phase>/discussion-log.md`
-- `.pace/phases/<phase>/plans/`
-- `.pace/phases/<phase>/runs/`
-- `.pace/phases/<phase>/verification.md`
+- `requirement` phase 必须归档：
+  - `.pace/phases/<phase>/context.md`
+  - `.pace/phases/<phase>/discussion-log.md`
+  - `.pace/phases/<phase>/plans/`
+  - `.pace/phases/<phase>/runs/`
+  - `.pace/phases/<phase>/verification.md`
+- `tech` phase 必须归档：
+  - roadmap 中 `Expected Outputs` 列出的产物
+  - `.pace/phases/<phase>/verification.md`
 
 ## 索引字段
 
@@ -43,7 +48,12 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - milestone 级归档暂不处理
 - 不要静默删除历史
 - 不要把 archive 变成第二个 bootstrap
+- `verification.md` 的 `Final Status` 不等于 `pass` 时禁止归档
 
 ## 后续路由
 
-phase 归档后，若后续 phase 缺 `context.md`，默认路由 `pace:discuss`；若已有 `context.md` 但缺 `plans/`，默认路由 `pace:plan`。
+phase 归档后，下一步路由必须按“下一个 phase 的类型 + 实际产物”决定：
+
+- 下一个 phase `Type = tech`：路由到它的 `Owner Skill`
+- 下一个 phase `Type = requirement` 且缺 `context.md`：路由 `pace:discuss`
+- 下一个 phase `Type = requirement` 且有 `context.md` 但缺 `plans/`：路由 `pace:plan`

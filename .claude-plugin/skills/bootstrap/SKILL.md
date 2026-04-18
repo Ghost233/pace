@@ -53,15 +53,25 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 `requirements.md` 最少要有：
 
 - 稳定的 requirement ID
-- 简短验收口径
+- Goal
+- Success Criteria
+- Non-Goals
+- External Dependencies
+- Owner Phase
 
 `roadmap.md` 在 bootstrap 阶段至少必须包含：
 
 - Phase ID
 - Title
 - Type（tech 或 requirement）
+- Owner Skill（`tech` phase 必填，`requirement` phase 填 `n/a`）
+- Expected Outputs（`tech` phase 必填，列出文件或目录路径；`requirement` phase 填 `n/a`）
 - Goal
 - Requirements
+- Non-Goals
+- Success Criteria
+- Entry Criteria
+- Done Criteria
 - Depends On
 - Status
 
@@ -70,6 +80,9 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 Type 规则：
 - 代码映射、环境搭建等技术前置 phase 标记为 `tech`
 - 产品需求 phase 标记为 `requirement`
+- `tech` phase 的 `Recommended Next Skill` 必须等于 `Owner Skill`
+- `requirement` phase 的 `Owner Skill` 固定写 `n/a`
+- `tech` phase 的 `Expected Outputs` 必须列出可检查的文件或目录路径，不能写抽象描述
 
 `state.md` 最少要有：
 
@@ -88,5 +101,6 @@ Type 规则：
 ## 后续路由
 
 - brownfield 且缺代码地图：`pace:map-codebase`
-- 首个 phase 还缺决策：`pace:discuss`
-- 首个 phase 已足够清晰：`pace:plan`
+- 首个 phase 为 `tech`：路由到该 phase 的 `Owner Skill`
+- 首个 `requirement` phase：默认路由 `pace:discuss`
+  原因：bootstrap 不生成 `context.md`，因此 requirement phase 不能直接进入 `pace:plan`

@@ -31,7 +31,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 
 ## 最小流程
 
-1. 判断当前 phase 是否已有足够 context；若不足，停止并路由 `pace:discuss`
+1. 判断当前 phase 是否已有足够 context；仅当 `context.md` 同时包含 `Goal`、`Phase Boundary`、结构化 `Locked Decisions`、`References` 四项时，才允许继续；若任一项缺失，停止并路由 `pace:discuss`
 2. 生成初版 plans
 3. 读取 coverage.md，为每个交付物分配到对应 plan，填充 Plan 列
 4. 使用子代理执行 checker 核查（保持主代理上下文干净）：
@@ -48,7 +48,8 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 - 至少有一份可执行 plan
 - 当前 phase requirements 已覆盖
 - `Locked Decisions` 没有被遗漏或篡改
-- tasks 对 executor 已足够具体
+- 每个 plan 都必须包含 `Objective`、`Scope Boundaries`、`Requirements Covered`、`Inputs`、`Files`、`Tasks`、`Verification`
+- 每个 task 都必须包含 `Files`、`Action`、`Verify`、`Done`
 - checker 必须通过
 
 ## 边界

@@ -8,9 +8,13 @@
 ```md
 # Verification <phase>: <title>
 
-## Verdict
+## Final Status
 
 - pass | partial | fail
+
+## Blocking Gaps
+
+- 0
 
 ## Goal Check
 
@@ -42,5 +46,5 @@
 
 ## Recommended Next Step
 
-- archive
+- pace:archive
 ```

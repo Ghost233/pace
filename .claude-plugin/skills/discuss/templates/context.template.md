@@ -22,8 +22,19 @@
 
 ## Locked Decisions
 
-- D-01: <锁定决策 1>
-- D-02: <锁定决策 2>
+### D-01
+- Decision: <锁定决策 1>
+- Scope: <这个决策约束哪些交付物或边界>
+- Rejected Options:
+  - <被否决方案> - <原因>
+- Rationale: <为什么选这个>
+
+### D-02
+- Decision: <锁定决策 2>
+- Scope: <这个决策约束哪些交付物或边界>
+- Rejected Options:
+  - <被否决方案> - <原因>
+- Rationale: <为什么选这个>
 
 ## Allowed Discretion
 

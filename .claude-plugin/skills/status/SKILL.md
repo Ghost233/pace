@@ -12,7 +12,9 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 ## 默认约定
 
 - 先读取 `.pace/state.md`
+- 再读取 `.pace/roadmap.md`，确认当前 phase 的 `Type` 与 `Owner Skill`
 - 再与 `.pace/phases/<phase>/` 的实际产物交叉验证
+- 如果当前 phase `Type = tech`，必须额外读取该 phase 的 `Expected Outputs`
 - 默认只读；仅当 `state.md` 缺少可从磁盘直接推导的字段，且不涉及 phase/plan 状态变更时，允许修正 `Recommended Next Skill` 与缺失的路径引用；其余冲突只报告，不写盘
 
 ## 输出最少要回答
@@ -28,6 +30,9 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 - `plans/`
 - `runs/`
 - `verification.md`
+- 当前 phase 的 `Type`
+- 当前 phase 的 `Owner Skill`
+- 当前 phase 的 `Expected Outputs`
 
 ## 边界
 
@@ -37,4 +42,14 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 
 ## 后续路由
 
-这是统一导航入口，但不是统一编排器。下一步 skill 必须按缺失产物决定：缺 `context.md` 路由 `pace:discuss`，缺 `plans/` 路由 `pace:plan`，有 `plans/` 但缺 `runs/` 路由 `pace:execute`，缺 `verification.md` 路由 `pace:verify`，phase 已验证通过则路由 `pace:archive`。
+这是统一导航入口，但不是统一编排器。下一步 skill 必须按 phase 类型和缺失产物决定：
+
+- 当前 phase `Type = tech` 且任一 `Expected Outputs` 不存在：路由到 `Owner Skill`
+- 当前 phase `Type = tech` 且 `Expected Outputs` 全部存在、但缺 `verification.md`：路由 `pace:verify`
+- 当前 phase `Type = tech` 且 `verification.md` 的 `Final Status = pass`：路由 `pace:archive`
+- 当前 phase `Type = requirement` 且缺 `context.md`：路由 `pace:discuss`
+- 当前 phase `Type = requirement` 且有 `context.md` 但缺 `plans/`：路由 `pace:plan`
+- 当前 phase `Type = requirement` 且有 `plans/` 但缺 `runs/` 或 `execution-log.md`：路由 `pace:execute`
+- 任意 phase 缺 `verification.md`：路由 `pace:verify`
+- 任意 phase `verification.md` 的 `Final Status = pass`：路由 `pace:archive`
+- 任意 phase `verification.md` 的 `Final Status = partial|fail`：路由 `verification.md` 里的 `Recommended Next Step`
