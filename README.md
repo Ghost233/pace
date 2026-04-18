@@ -57,7 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 - 写 GitHub issue comment
 - 读取 GitHub issue 状态
 
-则必须先安装并登录 GitHub CLI：
+则必须先在流程外安装并登录 GitHub CLI：
 
 ```bash
 brew install gh
@@ -70,9 +70,9 @@ gh auth login
 gh auth switch -u <tracker.github.username>
 ```
 
-如果当前机器没有 `gh`，或者 `gh` 当前/指定用户无权访问目标仓库，则 GitHub 流程不能继续，必须显式提示用户去登录或切换到正确账号。
+如果当前机器没有 `gh`，或者 `gh` 当前/指定用户无权访问目标仓库，则 GitHub 流程不能继续，必须显式要求用户在流程外完成安装/登录或切换到正确账号。
 
-如果你希望限制 GitHub 误操作，推荐只通过 `pace-gh` 访问 issue，而不要直接运行原生 `gh`。`pace-gh` 只开放受限的 issue 读取、issue 评论发送、附件下载等白名单操作，并会自动按 `.pace/session.yaml` 切换 GitHub 用户。
+如果你希望限制 GitHub 误操作，推荐只通过 `pace-gh` 访问 issue，而不要直接运行原生 `gh`。`pace-gh` 只开放受限的 issue 读取、issue 评论发送、附件下载等白名单操作，并且只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换 GitHub 用户。
 
 如果流程会产出 git 提交，还必须在配置里明确指定：
 
@@ -81,7 +81,7 @@ gh auth switch -u <tracker.github.username>
 
 不要依赖机器上的默认全局 git 身份，尤其是在多 GitHub 账号场景下。
 
-如果你希望限制误操作，推荐只通过 `pace-git` 操作仓库，而不要直接运行原生 `git`。`pace-git` 只开放少量安全子命令，并默认拒绝危险操作；如果 session 中配置了 GitHub 用户，它也会在每次执行前自动切到对应用户。
+如果你希望限制误操作，推荐只通过 `pace-git` 操作仓库，而不要直接运行原生 `git`。`pace-git` 只开放少量安全子命令，并默认拒绝危险操作；如果 session 中配置了 GitHub 用户，它也只会在当前机器已完成 GitHub 登录的前提下切到对应用户。
 
 ## 快速开始
 
@@ -139,13 +139,14 @@ intake → discuss → plan → execute → verify → archive
 PACE 现在推荐拆成两层：
 
 - **Skills 层**：`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify` 等，负责把某一步真正做完。
-- **Roles 层**：只用于 `executor=multica` 且 `tracker.type=github` 的 requirement phase，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
+- **Roles 层**：用于 `executor=multica` 且 `tracker.type=github` 的工作区前置准备与 requirement phase 管理，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
 
 推荐的最小角色集：
 
 | Role | 作用 |
 |------|------|
 | `PACE-调度经理` | 当当前状态不明确时先做分诊和路由，决定交给哪个角色；仍不确定时退回用户 |
+| `PACE-初始化经理` | 补齐 `.pace/` 工作区核心产物和代码地图，只负责 `bootstrap / map-codebase` 前置准备 |
 | `PACE-需求接管经理` | 新 issue 首次接管；补齐 GitHub issue 链接；建立追踪上下文 |
 | `PACE-阶段经理` | 管 `intake → discuss → plan` 的阶段推进和边界收敛 |
 | `PACE-交付经理` | 管 `execute` 的分发、阻塞汇报和阶段交接 |
@@ -157,6 +158,7 @@ PACE 现在推荐拆成两层：
 
 - `tech` phase 不走 roles 链路；它只由 roadmap 中声明的 `Owner Skill` 执行，然后进入 `pace:verify` 与 `pace:archive`
 - `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `status / verify / archive` 无法确定它是否完成
+- 若 `.pace/` 工作区核心产物缺失，必须先进入 `PACE-初始化经理`
 - `requirement` phase 才进入 `PACE-需求接管经理 → PACE-阶段经理 → PACE-交付经理 → PACE-验收归档经理`
 - `PACE-调度经理` 只在入口冲突、状态冲突或回退时使用，不是标准新 issue 的第一站
 
@@ -171,7 +173,7 @@ PACE 现在推荐拆成两层：
 4. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须同步到 GitHub issue；GitHub issue 必须能独立还原当前阶段的关键日志，不允许只写结论摘要。
 5. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块、阶段 comment 和阶段日志镜像才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
 6. 阶段日志过长时，必须分成多条连续 comment 上传；每条 comment 最多 6000 个字符，必须带 `第 x/n 段` 标记，并保持原文顺序。
-7. 如果使用 `pace-gh` / `pace-git`，它们会自动按 `.pace/session.yaml` 切换 GitHub 用户；如果直接使用原生 `gh`，则必须先手工执行 `gh auth switch -u <tracker.github.username>`。如果没有 `gh` 或该用户无权访问仓库，必须停止并明确要求用户介入。
+7. 如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换 GitHub 用户；如果直接使用原生 `gh`，则必须先手工执行 `gh auth switch -u <tracker.github.username>`。如果没有 `gh`、未登录或该用户无权访问仓库，必须停止并明确要求用户在流程外介入。
 8. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
 
 完整的 multica 落地流程、角色创建方式、阶段切换和 GitHub comment 同步规则，见 [README.multica.md](README.multica.md)。
@@ -296,6 +298,7 @@ roles:
   definitions_path: "roles"
   managers:
     dispatch: PACE-调度经理
+    setup: PACE-初始化经理
     issue_intake: PACE-需求接管经理
     phase: PACE-阶段经理
     delivery: PACE-交付经理

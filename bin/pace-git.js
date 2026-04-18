@@ -11,7 +11,7 @@ function usage(exitCode = 0) {
     '作用:',
     '  通过受限白名单执行 git 操作，默认拒绝危险命令。',
     '  如果存在 `.pace/session.yaml`，commit / push 会优先使用其中的 git 身份和分支信息。',
-    '  如果 session 配置了 GitHub repo/user，每次执行前都会复用 pace-gh 同源逻辑自动切换 GitHub 用户。',
+    '  如果 session 配置了 GitHub repo/user，每次执行前都会在当前机器已完成 GitHub 登录的前提下，复用 pace-gh 同源逻辑切换 GitHub 用户。',
     '',
     '允许的命令:',
     '  status                     查看简要状态',
@@ -94,7 +94,7 @@ function ensureCommitMessage(argv) {
 
 function ensureSessionForWrite(session, commandName) {
   if (!session.exists) {
-    throw new Error(`${commandName} 需要先存在 .pace/session.yaml，请先运行 pace-init`);
+    throw new Error(`${commandName} 需要先存在 .pace/session.yaml，请先运行 node "$HOME/.codex/skills/pace/bin/pace-init.js" local 或 multica`);
   }
   const name = session?.data?.config?.git?.name || '';
   const email = session?.data?.config?.git?.email || '';

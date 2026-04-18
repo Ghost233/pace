@@ -18,7 +18,7 @@ function usage(exitCode = 0) {
     '作用:',
     '  通过受限白名单执行 GitHub CLI 相关操作。',
     '  默认拒绝任意 gh 子命令，只开放 issue 读取、issue 评论发送、issue 附件下载。',
-    '  执行前会根据 `.pace/session.yaml` 自动切换到配置中的 GitHub 用户。',
+    '  执行前只会在当前机器已完成 GitHub 登录的前提下，按 `.pace/session.yaml` 切换到配置中的 GitHub 用户。',
     '',
     '允许的命令:',
     '  issue-read --issue <url|number> [--comments]',

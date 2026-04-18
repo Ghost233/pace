@@ -22,7 +22,9 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第一步：读取现有配置
 
-用 Read 读取 `.pace/session.yaml`；如果不存在，再回退读取 `.pace-config.yaml` 兼容旧工作区。如果配置存在，解析并展示当前配置摘要：
+读取 `.pace/session.yaml`。如果不存在，则展示“当前尚未初始化”，并继续进入配置流程；不要再回退读取 `.pace-config.yaml`。
+
+如果配置存在，解析并展示当前配置摘要：
 
 ```
 当前配置：
@@ -41,41 +43,41 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第二步：选择追踪方式
 
-用 AskUserQuestion 询问：
+询问用户：
 
 - **本地** — 所有工作日志保存在 `.pace/` 目录，不依赖外部服务
 - **GitHub Issues** — 将工作日志同步到 GitHub Issues，支持层级结构（Project → Phase → Wave）
 
 ### 第二步补充：选择执行模式
 
-用 AskUserQuestion 询问：
+询问用户：
 
 - **本地执行** — `executor=claude-code`，主要依赖本地 skills 推进
 - **外部编排** — `executor=multica`，由 roles 管理阶段推进和 GitHub 同步
 
 ### 第三步（仅 GitHub 模式）：配置 GitHub
 
-1. 用 AskUserQuestion 询问 `owner/repo` 格式的仓库名
-2. 用 AskUserQuestion 询问 GitHub 用户名
-3. 用 AskUserQuestion 询问 git commit 使用的名字
-4. 用 AskUserQuestion 询问 git commit 使用的邮箱
-5. 用 Bash 运行 `which gh` 检查 gh CLI 是否安装
-   - 未安装：提示用户安装（`brew install gh` 或参考 https://cli.github.com/），然后跳过验证，标记 `verified: false`
+1. 询问 `owner/repo` 格式的仓库名
+2. 询问 GitHub 用户名
+3. 询问 git commit 使用的名字
+4. 询问 git commit 使用的邮箱
+5. 运行 `which gh` 检查 gh CLI 是否安装
+   - 未安装：提示用户先在流程外安装（`brew install gh` 或参考 https://cli.github.com/），然后跳过验证，标记 `verified: false`
    - 已安装：继续验证
-6. 用 Bash 运行 `gh auth status` 检查当前登录状态
-   - 未登录：提示运行 `gh auth login`，标记 `verified: false`
+6. 运行 `gh auth status` 检查当前登录状态
+   - 未登录：提示用户先在流程外运行 `gh auth login`，标记 `verified: false`
    - 已登录但用户不匹配：提示运行 `gh auth switch` 切换到配置的用户，标记 `verified: false`
    - 已登录且用户匹配：标记 `verified: true`
 
 **重要：**
 
-- 在后续任何需要调用 GitHub 的 skill 或 role 中，优先使用 `pace-gh`；它会按 `.pace/session.yaml` 自动切换到配置中的 GitHub 用户。
+- 在后续任何需要调用 GitHub 的 skill 或 role 中，优先使用 `pace-gh`；它只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换到配置中的 GitHub 用户。
 - 如果直接使用原生 `gh`，执行前必须先检查当前 gh 用户是否与配置中的 `username` 一致，并手工执行：
   `gh auth switch -u <tracker.github.username>`
 - 所有 git 提交都必须使用配置中的：
   - `git.name`
   - `git.email`
-- 如果没有 `gh`、没有登录、或者指定用户无权访问目标仓库，则必须停止当前 GitHub 流程，并明确提示用户：
+- 如果没有 `gh`、没有登录、或者指定用户无权访问目标仓库，则必须停止当前 GitHub 流程，并明确提示用户在流程外处理：
   - 先安装 `gh`
   - 先执行 `gh auth login`
   - 或切换到 `tracker.github.username`
@@ -106,6 +108,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 如果开启，写入默认 managers：
 
 - `dispatch: PACE-调度经理`
+- `setup: PACE-初始化经理`
 - `issue_intake: PACE-需求接管经理`
 - `phase: PACE-阶段经理`
 - `delivery: PACE-交付经理`
@@ -113,7 +116,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第五步：配置子代理并发数
 
-用 AskUserQuestion 询问最大并行子代理数：
+询问最大并行子代理数：
 
 - **1** — 串行执行，适合复杂依赖或调试场景
 - **2** — 轻度并行
@@ -123,7 +126,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第六步：配置模型档位
 
-用 AskUserQuestion 询问模型档位：
+询问模型档位：
 
 - **quality** — 所有子代理使用 Opus，适合关键项目，成本最高
 - **balanced**（默认） — 规划/验证用 Opus，执行用 Sonnet，研究用 Sonnet
@@ -138,7 +141,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ### 第八步：写入配置
 
-用 Write 工具将配置写入 `.pace/session.yaml`，格式如下：
+将配置写入 `.pace/session.yaml`，格式如下：
 
 ```yaml
 # PACE 会话配置
@@ -162,6 +165,7 @@ config:
     definitions_path: "roles"
     managers:
       dispatch: PACE-调度经理
+      setup: PACE-初始化经理
       issue_intake: PACE-需求接管经理
       phase: PACE-阶段经理
       delivery: PACE-交付经理
@@ -216,7 +220,7 @@ git 身份：{config.git.name} <{config.git.email}>
 - GitHub 验证失败时只标记状态，不阻塞配置写入
 - 不处理 gh CLI 安装，只提示
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
-- 但必须明确告诉后续角色：优先使用 `pace-gh`；只有直接使用原生 `gh` 时，才需要手工 `gh auth switch -u <tracker.github.username>`
+- 但必须明确告诉后续角色：优先使用 `pace-gh`；只有在当前机器已完成 GitHub 登录时，才允许在已登录账号之间切换；直接使用原生 `gh` 时，仍需要手工 `gh auth switch -u <tracker.github.username>`
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 
 ## 后续路由

@@ -13,7 +13,7 @@
 - 仓库里已经接入了 PACE
 - 你准备用 multica 来承载外部流程编排
 - `skills` 负责执行动作
-- `roles` 负责 requirement phase 的阶段管理、handoff 和 GitHub 同步
+- `roles` 负责工作区前置准备、requirement phase 的阶段管理、handoff 和 GitHub 同步
 
 ## 核心原则
 
@@ -23,7 +23,7 @@
 3. Multica issue 是流程入口和协作面。
 4. GitHub issue 是外部追踪时间线。
 5. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
-6. 只要要访问 GitHub，就必须先安装 `gh` 并确认已登录；如果使用 `pace-gh` / `pace-git`，它们会在执行前自动按 session 切换到配置中的 GitHub 用户。
+6. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
 7. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
 8. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
 9. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
@@ -81,14 +81,13 @@ node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 第一次接入项目时，至少需要完成：
 
 ```text
-/pace:config
-/pace:bootstrap
+PACE-初始化经理 -> pace:bootstrap
 ```
 
 如果项目不是 greenfield，而是已有代码的仓库，再补一次：
 
 ```text
-/pace:map-codebase
+PACE-初始化经理 -> pace:map-codebase
 ```
 
 ### 3. 推荐配置
@@ -114,7 +113,7 @@ roles:
 
 ### 4. GitHub CLI 前置要求
 
-如果当前流程要触发 GitHub 操作，机器上必须满足：
+如果当前流程要触发 GitHub 操作，用户必须先在流程外满足：
 
 ```bash
 brew install gh
@@ -127,7 +126,7 @@ gh auth login
 gh auth switch -u <tracker.github.username>
 ```
 
-如果出现以下任一情况，角色必须停止并明确要求用户介入：
+如果出现以下任一情况，角色必须停止，并要求用户在流程外介入：
 
 - 没有安装 `gh`
 - `gh` 未登录
@@ -151,7 +150,7 @@ gh auth switch -u <tracker.github.username>
 - `node "$HOME/.codex/skills/pace/bin/pace-git.js" log`
 - `node "$HOME/.codex/skills/pace/bin/pace-git.js" info`
 
-`pace-git` 会限制危险行为，并在 session 中配置了 GitHub 用户时自动切换用户：
+`pace-git` 会限制危险行为；在当前机器已完成 GitHub 登录时，它才可以按 session 切换用户：
 
 - 不支持 `reset / checkout / switch / rebase / merge / cherry-pick / clean / stash`
 - 不支持强制 push
@@ -170,7 +169,7 @@ gh auth switch -u <tracker.github.username>
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment`
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download`
 
-`pace-gh` 会限制危险行为，并在执行前自动切换到 session 中配置的 GitHub 用户：
+`pace-gh` 会限制危险行为；在当前机器已完成 GitHub 登录时，它才可以切换到 session 中配置的 GitHub 用户：
 
 - 不支持任意 gh 子命令透传
 - 不支持 issue 删除 / 编辑 / close / reopen
@@ -179,17 +178,19 @@ gh auth switch -u <tracker.github.username>
 
 ## 角色设计
 
-在 multica 中，推荐创建 5 个固定角色 agent：
+在 multica 中，推荐创建 6 个固定角色 agent：
 
 1. `PACE-调度经理`
-1. `PACE-需求接管经理`
-2. `PACE-阶段经理`
-3. `PACE-交付经理`
-4. `PACE-验收归档经理`
+2. `PACE-初始化经理`
+3. `PACE-需求接管经理`
+4. `PACE-阶段经理`
+5. `PACE-交付经理`
+6. `PACE-验收归档经理`
 
 对应的角色定义：
 
 - [`roles/调度经理.md`](roles/调度经理.md)
+- [`roles/初始化经理.md`](roles/初始化经理.md)
 - [`roles/需求接管经理.md`](roles/需求接管经理.md)
 - [`roles/阶段经理.md`](roles/阶段经理.md)
 - [`roles/交付经理.md`](roles/交付经理.md)
@@ -201,23 +202,27 @@ gh auth switch -u <tracker.github.username>
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
 - 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 初始化
-- 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，会自动按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
-- 每个角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
+- 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
+- `PACE-初始化经理` 只处理会话与工作区前置准备，不接管 requirement 内容
+- 其余角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
 
 ## 可执行工作流
 
 PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
 
-1. `PACE-需求接管经理`
+1. `PACE-初始化经理`
+   条件：`.pace/` 工作区核心产物缺失，或 brownfield 仓库缺少代码地图
+   产物：`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`、必要时 `.pace/codebase/`
+2. `PACE-需求接管经理`
    条件：issue 尚无追踪块或 GitHub issue URL
    产物：tracking block、tracking-init comment、归类结果、追踪块日志镜像
-2. `PACE-阶段经理`
+3. `PACE-阶段经理`
    条件：requirement 信息已接管，但 `context.md` 或 checker 通过的 `plans/` 尚未齐备
    产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、阶段 comment、阶段日志镜像
-3. `PACE-交付经理`
+4. `PACE-交付经理`
    条件：checker 通过的 `plans/` 已存在，且 `execution-log.md` 尚未完成
    产物：`execution-log.md`、`runs/`、`coverage.md`、execute comment、执行日志镜像
-4. `PACE-验收归档经理`
+5. `PACE-验收归档经理`
    条件：执行已完成，进入 verify/archive
    产物：`verification.md`、archive comment、归档结论、验证/归档日志镜像
 
@@ -241,7 +246,11 @@ tech phase 的闭环单独处理：
 - 缺陷修复
 - 某个 phase 的阻塞升级
 
-标准新 issue 的第一位接手者必须是：
+如果当前仓库还没有完成工作区初始化，第一位接手者必须是：
+
+`PACE-初始化经理`
+
+工作区已就绪后，标准新 issue 的第一位接手者必须是：
 
 `PACE-需求接管经理`
 
@@ -309,7 +318,7 @@ tech phase 的闭环单独处理：
 8. 给出 handoff。
 
 如果 GitHub issue URL 缺失且还没补齐，流程不能继续往下走。
-如果 `gh` 不存在、未登录、用户不匹配或无仓库权限，流程也不能继续往下走。
+如果 `gh` 不存在、未登录、用户不匹配或无仓库权限，流程也不能继续往下走，必须由用户在流程外处理。
 如果 `git.name` / `git.email` 缺失且后续会涉及提交，流程也不能继续往下走。
 
 完成后，移交给：
