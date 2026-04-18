@@ -37,7 +37,7 @@
 在项目仓库根目录执行：
 
 ```bash
-pace-init multica \
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
   --repo <owner/repo> \
   --github-user <username> \
   --git-name "<git name>" \
@@ -49,20 +49,31 @@ pace-init multica \
 ```
 
 这会生成 `.pace/session.yaml`，把本次 multica 运行所需的配置和上下文一次性写好。
-如果参数填错，直接用正确参数重新执行一次 `pace-init multica` 即可覆盖 `.pace/session.yaml`。
+如果参数填错，直接用正确参数重新执行一次 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 即可覆盖 `.pace/session.yaml`。
+
+如果当前 shell 里没有 `pace-init` 这个命令，不代表没安装；这里默认不再暴露 PATH 命令入口，直接检查脚本文件：
+
+```bash
+ls -l ~/.codex/skills/pace/bin/pace-init.js
+node "$HOME/.codex/skills/pace/bin/pace-init.js" --help
+```
+
+只有当 `~/.codex/skills/pace/bin/pace-init.js` 本身不存在时，才说明还没安装。
 
 如果你只想看底层模板合并结果，才使用：
 
 ```bash
-pace-merge multica
+node "$HOME/.codex/skills/pace/bin/pace-merge.js" multica
 ```
+
+`pace-merge` 只用于排查模板合并结果，不是 multica 正常流程的必经步骤。
 
 如果本轮会产出提交，推荐先确认：
 
 ```bash
-pace-git info
-pace-git status
-pace-gh repo-check
+node "$HOME/.codex/skills/pace/bin/pace-git.js" info
+node "$HOME/.codex/skills/pace/bin/pace-git.js" status
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 ```
 
 ### 2. 初始化 PACE 工作区
@@ -130,15 +141,15 @@ gh auth switch -u <tracker.github.username>
 
 允许的命令：
 
-- `pace-git status`
-- `pace-git diff`
-- `pace-git stage`
-- `pace-git unstage`
-- `pace-git commit -m "..."`
-- `pace-git push`
-- `pace-git branch`
-- `pace-git log`
-- `pace-git info`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" status`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" diff`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" stage`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" unstage`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" commit -m "..."`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" push`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" branch`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" log`
+- `node "$HOME/.codex/skills/pace/bin/pace-git.js" info`
 
 `pace-git` 会限制危险行为，并在 session 中配置了 GitHub 用户时自动切换用户：
 
@@ -153,11 +164,11 @@ gh auth switch -u <tracker.github.username>
 
 允许的命令：
 
-- `pace-gh whoami`
-- `pace-gh repo-check`
-- `pace-gh issue-read`
-- `pace-gh issue-comment`
-- `pace-gh attachment-download`
+- `node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami`
+- `node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check`
+- `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read`
+- `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment`
+- `node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download`
 
 `pace-gh` 会限制危险行为，并在执行前自动切换到 session 中配置的 GitHub 用户：
 
@@ -189,7 +200,7 @@ gh auth switch -u <tracker.github.username>
 - 一个角色 agent 覆盖一个稳定阶段
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
-- 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `pace-init multica` 初始化
+- 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 初始化
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，会自动按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - 每个角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
 
@@ -489,7 +500,7 @@ multica 模式下，本轮执行先读：
 - GitHub issue 负责保存跨轮次 comment 和日志镜像
 - `.pace/` 负责保存本轮工作区产物
 
-如果 `.pace/session.yaml` 缺失，roles 必须停止并要求先运行 `pace-init multica`。
+如果 `.pace/session.yaml` 缺失，roles 必须停止并要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica`。
 
 ## 阶段日志同步规则
 

@@ -4,7 +4,6 @@ set -euo pipefail
 
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 PACE_HOME="$CODEX_HOME/skills/pace"
-BIN_DIR="$CODEX_HOME/bin"
 ARCHIVE_URL="${PACE_INSTALL_ARCHIVE_URL:-https://github.com/Ghost233/pace/archive/refs/heads/main.tar.gz}"
 SOURCE_DIR="${PACE_INSTALL_SOURCE_DIR:-}"
 TMP_DIR=""
@@ -58,57 +57,30 @@ if [[ ! -d "$PACE_BIN_SRC" ]]; then
   exit 1
 fi
 
-mkdir -p "$PACE_HOME" "$BIN_DIR"
+mkdir -p "$PACE_HOME"
 
 rsync -a --delete "$SKILLS_SRC/" "$PACE_HOME/"
 mkdir -p "$PACE_HOME/bin" "$PACE_HOME/.pace"
 rsync -a --delete "$PACE_CONFIG_SRC/" "$PACE_HOME/.pace/"
 rsync -a --delete "$PACE_BIN_SRC/" "$PACE_HOME/bin/"
-
-cat > "$BIN_DIR/pace-merge" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec node "$PACE_HOME/bin/pace-merge.js" "\$@"
-EOF
-chmod +x "$BIN_DIR/pace-merge"
-
-cat > "$BIN_DIR/pace-init" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec node "$PACE_HOME/bin/pace-init.js" "\$@"
-EOF
-chmod +x "$BIN_DIR/pace-init"
-
-cat > "$BIN_DIR/pace-git" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec node "$PACE_HOME/bin/pace-git.js" "\$@"
-EOF
-chmod +x "$BIN_DIR/pace-git"
-
-cat > "$BIN_DIR/pace-gh" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec node "$PACE_HOME/bin/pace-gh.js" "\$@"
-EOF
-chmod +x "$BIN_DIR/pace-gh"
+chmod +x \
+  "$PACE_HOME/bin/pace-merge.js" \
+  "$PACE_HOME/bin/pace-init.js" \
+  "$PACE_HOME/bin/pace-git.js" \
+  "$PACE_HOME/bin/pace-gh.js"
 
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Helpers: $BIN_DIR/pace-merge, $BIN_DIR/pace-init, $BIN_DIR/pace-git, $BIN_DIR/pace-gh
-
-建议把以下目录加入 PATH:
-
-  export PATH="$BIN_DIR:\$PATH"
+- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js
 
 之后可直接在任意项目根目录运行:
 
-  pace-merge local
-  pace-merge multica
-  pace-init local
-  pace-init multica --repo <owner/repo> --github-user <username>
-  pace-git status
-  pace-gh issue-read --issue 72
+  node "$PACE_HOME/bin/pace-merge.js" local
+  node "$PACE_HOME/bin/pace-merge.js" multica
+  node "$PACE_HOME/bin/pace-init.js" local
+  node "$PACE_HOME/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+  node "$PACE_HOME/bin/pace-git.js" status
+  node "$PACE_HOME/bin/pace-gh.js" issue-read --issue 72
 EOF

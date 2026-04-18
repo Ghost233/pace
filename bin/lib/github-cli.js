@@ -66,7 +66,7 @@ function ensureGithubSession(session, { requireRepo = false } = {}) {
   let repo = context.repo;
   if (requireRepo) {
     if (!repo) {
-      throw new Error('当前未配置 GitHub repo，请先运行 pace-init multica 或补齐 `.pace/session.yaml`');
+      throw new Error('当前未配置 GitHub repo，请先运行 `node <pace-bin>/pace-init.js multica` 或补齐 `.pace/session.yaml`');
     }
     repo = ensureRepoAccessible(repo);
   }

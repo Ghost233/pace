@@ -7,7 +7,7 @@ const { dumpYaml, loadMergedConfig } = require('./lib/pace-config');
 function main() {
   const env = process.argv[2];
   if (!env) {
-    console.error('用法: pace-merge <local|multica>');
+    console.error('用法: node <pace-bin>/pace-merge.js <local|multica>');
     process.exit(1);
   }
 

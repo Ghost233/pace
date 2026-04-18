@@ -6,7 +6,7 @@ const { ensureGithubSession } = require('./lib/github-cli');
 
 function usage(exitCode = 0) {
   const text = [
-    '用法: pace-git <命令> [参数]',
+    '用法: node <pace-bin>/pace-git.js <命令> [参数]',
     '',
     '作用:',
     '  通过受限白名单执行 git 操作，默认拒绝危险命令。',
@@ -31,11 +31,11 @@ function usage(exitCode = 0) {
     '  - `commit` 必须显式传 `-m`',
     '',
     '示例:',
-    '  pace-git status',
-    '  pace-git diff --staged README.md',
-    '  pace-git stage README.md bin/pace-git.js',
-    '  pace-git commit -m "docs: update workflow"',
-    '  pace-git push',
+    '  node "$HOME/.codex/skills/pace/bin/pace-git.js" status',
+    '  node "$HOME/.codex/skills/pace/bin/pace-git.js" diff --staged README.md',
+    '  node "$HOME/.codex/skills/pace/bin/pace-git.js" stage README.md bin/pace-git.js',
+    '  node "$HOME/.codex/skills/pace/bin/pace-git.js" commit -m "docs: update workflow"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-git.js" push',
   ].join('\n');
   console.error(text);
   process.exit(exitCode);

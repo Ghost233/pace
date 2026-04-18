@@ -13,7 +13,7 @@ const {
 
 function usage(exitCode = 0) {
   const text = [
-    '用法: pace-gh <命令> [参数]',
+    '用法: node <pace-bin>/pace-gh.js <命令> [参数]',
     '',
     '作用:',
     '  通过受限白名单执行 GitHub CLI 相关操作。',
@@ -44,11 +44,11 @@ function usage(exitCode = 0) {
     '  - 不支持 PR 操作',
     '',
     '示例:',
-    '  pace-gh whoami',
-    '  pace-gh repo-check',
-    '  pace-gh issue-read --issue 72 --comments',
-    '  pace-gh issue-comment --issue 72 --body "已完成 discuss 阶段"',
-    '  pace-gh attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"',
   ].join('\n');
   console.error(text);
   process.exit(exitCode);
@@ -93,7 +93,7 @@ function loadGithubContext() {
 
 function ensureRepo(repo) {
   if (!repo) {
-    throw new Error('当前未配置 GitHub repo，请先运行 pace-init multica 或补齐 `.pace/session.yaml`');
+    throw new Error('当前未配置 GitHub repo，请先运行 `node <pace-bin>/pace-init.js multica` 或补齐 `.pace/session.yaml`');
   }
 }
 

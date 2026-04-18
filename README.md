@@ -27,13 +27,23 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
-- helpers → `~/.codex/bin/pace-merge`、`~/.codex/bin/pace-init`、`~/.codex/bin/pace-git`、`~/.codex/bin/pace-gh`
+- scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-git.js`、`~/.codex/skills/pace/bin/pace-gh.js`
 
-把 `~/.codex/bin` 加进 PATH：
+这些脚本直接用 `node` 调用，不再额外生成 PATH 命令入口。
+
+常用调用方式：
 
 ```bash
-export PATH="$HOME/.codex/bin:$PATH"
+node "$HOME/.codex/skills/pace/bin/pace-init.js" local
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
 ```
+
+如果你之前按旧习惯直接输入 `pace-init`，当前 shell 提示 `command not found` 是正常的；现在优先按下面顺序排查：
+
+1. `ls -l ~/.codex/skills/pace/bin/pace-init.js`
+2. `node "$HOME/.codex/skills/pace/bin/pace-init.js" --help`
+
+第一步存在且第二步能输出帮助，就说明不是“没安装”，而只是之前把它误当成了 PATH 命令。
 
 后续更新时，直接重复执行同一条命令即可：
 
@@ -76,24 +86,20 @@ gh auth switch -u <tracker.github.username>
 ## 快速开始
 
 ```bash
-# 1. 合并配置（根据执行环境选择）
-pace-merge local     # 本地模式
-pace-merge multica   # multica 模式
-
-# 2. 初始化当前会话
-pace-init local
+# 1. 初始化当前会话
+node "$HOME/.codex/skills/pace/bin/pace-init.js" local
 # 或
-pace-init multica --repo <owner/repo> --github-user <username>
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
 
-# 3. 受限 git 操作（推荐）
-pace-git status
-pace-git info
+# 2. 受限 git 操作（推荐）
+node "$HOME/.codex/skills/pace/bin/pace-git.js" status
+node "$HOME/.codex/skills/pace/bin/pace-git.js" info
 
-# 4. 受限 GitHub 操作（推荐）
-pace-gh whoami
-pace-gh issue-read --issue 72
+# 3. 受限 GitHub 操作（推荐）
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72
 
-# 5. 开始使用
+# 4. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
 /pace:status    → 查看当前进度和下一步默认 skill
 ```
@@ -188,31 +194,32 @@ PACE 现在区分两类文件：
 └── config.multica.yaml   # multica 编排覆盖
 ```
 
-合并命令：
+如果你只想检查模板合并结果，再使用：
 
 ```bash
-pace-merge local     # → .pace-config.yaml
-pace-merge multica   # → .pace-config.yaml
+node "$HOME/.codex/skills/pace/bin/pace-merge.js" local     # → .pace-config.yaml
+node "$HOME/.codex/skills/pace/bin/pace-merge.js" multica   # → .pace-config.yaml
 ```
 
-推荐入口：
+正常入口：
 
 ```bash
-pace-init local
-pace-init multica --repo <owner/repo> --github-user <username>
+node "$HOME/.codex/skills/pace/bin/pace-init.js" local
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
 ```
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
+`pace-merge` 只用于排查模板值，不是正常流程的必经步骤。
 
 受限 git 入口：
 
 ```bash
-pace-git status
-pace-git diff --staged README.md
-pace-git stage README.md bin/pace-git.js
-pace-git commit -m "docs: update workflow"
-pace-git push
+node "$HOME/.codex/skills/pace/bin/pace-git.js" status
+node "$HOME/.codex/skills/pace/bin/pace-git.js" diff --staged README.md
+node "$HOME/.codex/skills/pace/bin/pace-git.js" stage README.md bin/pace-git.js
+node "$HOME/.codex/skills/pace/bin/pace-git.js" commit -m "docs: update workflow"
+node "$HOME/.codex/skills/pace/bin/pace-git.js" push
 ```
 
 `pace-git` 只开放白名单命令：
@@ -242,11 +249,11 @@ pace-git push
 受限 GitHub 入口：
 
 ```bash
-pace-gh whoami
-pace-gh repo-check
-pace-gh issue-read --issue 72 --comments
-pace-gh issue-comment --issue 72 --body "已完成 discuss 阶段"
-pace-gh attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"
 ```
 
 `pace-gh` 只开放白名单命令：

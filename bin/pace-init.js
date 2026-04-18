@@ -8,7 +8,7 @@ const { dumpYaml, loadMergedConfig } = require('./lib/pace-config');
 function usage() {
   console.error(
     [
-      '用法: pace-init <local|multica> [参数]',
+      '用法: node <pace-bin>/pace-init.js <local|multica> [参数]',
       '',
       '作用:',
       '  初始化当前仓库的 `.pace/session.yaml`。',
@@ -53,14 +53,14 @@ function usage() {
       '  --current-role',
       '',
       '填错后如何修改:',
-      '  直接用正确参数重新执行一次 `pace-init`，会覆盖 `.pace/session.yaml`。',
+      '  直接用正确参数重新执行一次 `node <pace-bin>/pace-init.js`，会覆盖 `.pace/session.yaml`。',
       '  可以先查看当前文件：',
       '    cat .pace/session.yaml',
       '',
       '示例:',
-      '  pace-init local --git-name "Ghost233" --git-email "you@example.com"',
+      '  node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "Ghost233" --git-email "you@example.com"',
       '',
-      '  pace-init multica \\',
+      '  node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \\',
       '    --repo Conso-xFinite/Telegram-iOS \\',
       '    --github-user ghost233 \\',
       '    --git-name "Ghost233" \\',
