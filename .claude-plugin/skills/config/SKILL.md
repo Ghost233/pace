@@ -66,13 +66,13 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
    - 已安装：继续验证
 6. 运行 `gh auth status` 检查当前登录状态
    - 未登录：提示用户先在流程外运行 `gh auth login`，标记 `verified: false`
-   - 已登录但用户不匹配：提示运行 `gh auth switch` 切换到配置的用户，标记 `verified: false`
+   - 已登录但用户不匹配：提示后续流程默认优先使用 `pace-gh` / `pace-git` 自动切用户；若必须直接使用原生 `gh`，再手工 `gh auth switch`，标记 `verified: false`
    - 已登录且用户匹配：标记 `verified: true`
 
 **重要：**
 
-- 在后续任何需要调用 GitHub 的 skill 或 role 中，优先使用 `pace-gh`；它只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换到配置中的 GitHub 用户。
-- 如果直接使用原生 `gh`，执行前必须先检查当前 gh 用户是否与配置中的 `username` 一致，并手工执行：
+- 在后续任何需要调用 GitHub 的 skill 或 role 中，默认优先使用 `pace-gh`；它只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换到配置中的 GitHub 用户。
+- 只有当 wrapper 未覆盖该操作时，才允许直接使用原生 `gh`；这属于例外路径，不是默认流程。此时执行前必须先检查当前 gh 用户是否与配置中的 `username` 一致，并手工执行：
   `gh auth switch -u <tracker.github.username>`
 - 所有 git 提交都必须使用配置中的：
   - `git.name`
@@ -80,7 +80,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - 如果没有 `gh`、没有登录、或者指定用户无权访问目标仓库，则必须停止当前 GitHub 流程，并明确提示用户在流程外处理：
   - 先安装 `gh`
   - 先执行 `gh auth login`
-  - 或切换到 `tracker.github.username`
+  - 如果当前机器已完成登录但账号不匹配，再切换到 `tracker.github.username`
 - GitHub 不可达时，不能假装继续创建 issue / comment。
 - 如果 `git.name` / `git.email` 未配置，也不能假装继续进入需要提交的流程。
 
@@ -89,7 +89,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 继续询问：
 
 - 是否在缺失 GitHub issue URL 时自动创建 issue
-- 是否在每个阶段边界自动同步 comment
+- 是否在每个阶段边界自动同步主 issue comment
 
 默认值：
 
@@ -217,7 +217,7 @@ git 身份：{config.git.name} <{config.git.email}>
 
 - 不要修改 `.pace/` 下的其他文件
 - 不要在配置过程中执行任何 pace workflow 操作
-- GitHub 验证失败时只标记状态，不阻塞配置写入
+- GitHub 验证失败时只记录当前机器的检查结果，不代表已完成认证登录
 - 不处理 gh CLI 安装，只提示
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
 - 但必须明确告诉后续角色：优先使用 `pace-gh`；只有在当前机器已完成 GitHub 登录时，才允许在已登录账号之间切换；直接使用原生 `gh` 时，仍需要手工 `gh auth switch -u <tracker.github.username>`
@@ -225,5 +225,7 @@ git 身份：{config.git.name} <{config.git.email}>
 
 ## 后续路由
 
-- 首次配置完成后：`pace:bootstrap`
+- 首次配置完成后：
+  - `multica + roles`：交给 `PACE-初始化经理`
+  - `local / skills-only`：`pace:bootstrap`
 - 已有 workflow 修改配置：回到之前的 skill 继续工作

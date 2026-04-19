@@ -105,9 +105,7 @@ function ensureSessionForWrite(session, commandName) {
 
 function maybeEnsureGithubSwitch(session, { requireRepo = false } = {}) {
   const trackerType = session?.data?.config?.tracker?.type || '';
-  const username = session?.data?.config?.tracker?.github?.username || '';
-  const repo = session?.data?.config?.tracker?.github?.repo || '';
-  if (trackerType !== 'github' && !username && !repo) {
+  if (trackerType !== 'github') {
     return null;
   }
   return ensureGithubSession(session, { requireRepo });
@@ -215,11 +213,15 @@ function main() {
         if (rest.length) {
           throw new Error('push 不接受额外参数；固定推送到 origin 当前分支');
         }
-        const branch = session?.data?.context?.git?.branch || currentBranch();
-        if (!branch) {
+        const current = currentBranch();
+        if (!current) {
           throw new Error('无法确定当前分支，不能执行 push');
         }
-        runGit(['push', 'origin', branch], { stdio: 'inherit' });
+        const sessionBranch = session?.data?.context?.git?.branch || '';
+        if (sessionBranch && sessionBranch !== current) {
+          throw new Error(`当前分支与 session 不一致: 当前=${current}, session=${sessionBranch}；请重新运行 pace-init`);
+        }
+        runGit(['push', 'origin', current], { stdio: 'inherit' });
         break;
       }
       case 'branch': {

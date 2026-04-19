@@ -105,6 +105,25 @@ function parseArgs(argv) {
     i += 1;
   }
 
+  if (options['max-concurrent'] && !/^\d+$/.test(options['max-concurrent'])) {
+    console.error('--max-concurrent 必须是正整数');
+    process.exit(1);
+  }
+  if (options['max-concurrent']) {
+    const value = Number(options['max-concurrent']);
+    if (value < 1 || value > 5) {
+      console.error('--max-concurrent 必须在 1 到 5 之间');
+      process.exit(1);
+    }
+  }
+  if (options['model-profile']) {
+    const allowed = ['quality', 'balanced', 'budget', 'adaptive'];
+    if (!allowed.includes(options['model-profile'])) {
+      console.error(`--model-profile 只支持: ${allowed.join(', ')}`);
+      process.exit(1);
+    }
+  }
+
   return { mode, options };
 }
 
@@ -172,17 +191,25 @@ function buildConfig(mode, options) {
   const baseBranch = options['base-branch'] || defaultBase || 'main';
   const remoteUrl = run('git', ['remote', 'get-url', 'origin']);
   const remoteRepo = parseGitHubRepoFromRemote(remoteUrl);
-  const repo = options.repo || remoteRepo || config.tracker?.github?.repo || '';
+  const repo = mode === 'multica'
+    ? (options.repo || remoteRepo || config.tracker?.github?.repo || '')
+    : '';
 
   const gitName = options['git-name'] || run('git', ['config', 'user.name']) || config.git?.name || '';
   const gitEmail = options['git-email'] || run('git', ['config', 'user.email']) || config.git?.email || '';
-  const loginProbe = options['github-user'] || run('gh', ['api', 'user', '--jq', '.login']) || config.tracker?.github?.username || '';
+  const loginProbe = mode === 'multica'
+    ? (options['github-user'] || run('gh', ['api', 'user', '--jq', '.login']) || config.tracker?.github?.username || '')
+    : '';
 
   if (mode === 'multica' && !repo) {
     throw new Error('multica 模式必须提供 --repo，或当前仓库 remote 可解析出 GitHub repo');
   }
 
   const validation = repo ? validateGitHub(repo, loginProbe) : { verified: false, reason: '未提供 repo', login: loginProbe };
+
+  if (mode === 'multica' && !validation.verified) {
+    throw new Error(`multica 模式初始化失败：GitHub 校验未通过 (${validation.reason})`);
+  }
 
   config.executor = mode === 'multica' ? 'multica' : 'claude-code';
   config.tracker = config.tracker || {};

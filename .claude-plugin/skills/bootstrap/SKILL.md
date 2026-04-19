@@ -1,6 +1,6 @@
 ---
 name: pace:bootstrap
-description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或 brownfield；若是 brownfield 且缺少代码地图，则先路由到代码库映射，再创建 project、requirements、roadmap seed 和 state。当用户想在当前仓库启动一套新的轻量 workflow（而非维护已有 phase 结构）时触发。
+description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或 brownfield；若是 brownfield 且缺少代码地图，则在 multica+roles 下回交初始化角色，在本地 skills-only 模式下推荐 `pace:map-codebase`，随后创建 project、requirements、roadmap seed 和 state。当用户想在当前仓库启动一套新的轻量 workflow（而非维护已有 phase 结构）时触发。
 ---
 
 # PACE Bootstrap
@@ -18,7 +18,9 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 
 - 所有工作流产物写入 `.pace/`
 - 除非用户明确要求迁移，否则不要修改现有 `.planning/`
-- brownfield 且 `.pace/codebase/` 不存在时，`Recommended Next Skill` 必须写为 `pace:map-codebase`
+- brownfield 且 `.pace/codebase/` 不存在时：
+  - `multica + roles`：回交 `PACE-初始化经理` 或调度层决定是否进入 `pace:map-codebase`
+  - `local / skills-only`：`Recommended Next Skill` 可写为 `pace:map-codebase`
 - bootstrap 只做初始化，不做后续 roadmap 维护
 
 ## 必需产物
@@ -38,7 +40,9 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 ## 最小流程
 
 1. 判断当前仓库是 greenfield 还是 brownfield
-2. 若是 brownfield 且无代码地图，`Recommended Next Skill` 必须写为 `pace:map-codebase`
+2. 若是 brownfield 且无代码地图：
+   - `multica + roles`：写明需回交 `PACE-初始化经理`
+   - `local / skills-only`：`Recommended Next Skill` 可写为 `pace:map-codebase`
 3. 获取项目简述
 4. 写 `project.md`
 5. 写 `requirements.md`
@@ -105,7 +109,9 @@ Type 规则：
 
 ## 后续路由
 
-- brownfield 且缺代码地图：`pace:map-codebase`
+- brownfield 且缺代码地图：
+  - `multica + roles`：回交 `PACE-初始化经理`
+  - `local / skills-only`：`pace:map-codebase`
 - 首个 phase 为 `tech`：路由到该 phase 的 `Owner Skill`
 - 首个 `requirement` phase：默认路由 `pace:discuss`
   原因：bootstrap 不生成 `context.md`，因此 requirement phase 不能直接进入 `pace:plan`

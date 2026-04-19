@@ -20,6 +20,10 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 - 再读取 `.pace/roadmap.md`，确认当前 phase 的 `Type` 与 `Owner Skill`
 - 再与 `.pace/phases/<phase>/` 的实际产物交叉验证
 - 如果当前 phase `Type = tech`，必须额外读取该 phase 的 `Expected Outputs`
+- `multica + github` 下，以上本地文件只在工作区已从外部真相源恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，只能报告“需要先同步/恢复”，不能继续给出确定性路由
+- `multica + github` 下：
+  - 主 issue comment 用于判断阶段状态、handoff、closeout
+  - 文档 issue body 用于判断正文是否最新
 - 默认只读；仅当 `state.md` 缺少可从磁盘直接推导的字段，且不涉及 phase/plan 状态变更时，允许修正 `Recommended Next Skill` 与缺失的路径引用；其余冲突只报告，不写盘
 
 ## 输出最少要回答

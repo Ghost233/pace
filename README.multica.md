@@ -18,17 +18,20 @@
 ## 核心原则
 
 1. 必须先读取 `tracker.type`，再判断当前工作的真相源。
-2. 当 `tracker.type = github` 时，GitHub issue 的追踪块与阶段 comment 是跨轮次唯一真相源；`.pace/` 只是当前工作区的本地产物，不保证下轮还在。
-3. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须镜像到 GitHub issue；不能只同步 handoff 摘要。
-3. Multica issue 是流程入口和协作面。
-4. GitHub issue 是外部追踪时间线。
-5. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
-6. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
-7. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
-8. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
-9. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
-10. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
-11. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
+2. 当 `tracker.type = github` 时，跨轮次真相源分成两层：
+   - 主 issue 的追踪块与阶段结论 comment
+   - 文档 issue 的最新版 body 与审计 comment
+   `.pace/` 只是当前工作区的本地产物，不保证下轮还在。
+3. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须进入 GitHub 文档层；不能只同步 handoff 摘要。
+4. Multica issue 是流程入口和协作面。
+5. GitHub 主 issue 是阶段状态时间线；GitHub 文档 issue 是正文持久层。
+6. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
+7. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
+8. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
+9. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
+10. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
+11. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+12. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -168,6 +171,10 @@ gh auth switch -u <tracker.github.username>
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read`
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment`
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" create-doc`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" append-audit`
 
 `pace-gh` 会限制危险行为；在当前机器已完成 GitHub 登录时，它才可以切换到 session 中配置的 GitHub 用户：
 
@@ -175,6 +182,13 @@ gh auth switch -u <tracker.github.username>
 - 不支持 issue 删除 / 编辑 / close / reopen
 - 不支持 PR 操作
 - 不支持 release / workflow / repo 管理操作
+
+`pace-issue-doc` 负责 issue 文档层：
+
+- 用 issue body 保存最新版文档
+- 用 comment 追加审计记录
+- 默认限制 body 小于 `60000` 字符
+- 可创建文档 issue，并可挂到父 issue 下
 
 ## 角色设计
 
@@ -215,16 +229,16 @@ PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
    产物：`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`、必要时 `.pace/codebase/`
 2. `PACE-需求接管经理`
    条件：issue 尚无追踪块或 GitHub issue URL
-   产物：tracking block、tracking-init comment、归类结果、追踪块日志镜像
+   产物：tracking block、tracking-init comment、归类结果、追踪相关文档 issue
 3. `PACE-阶段经理`
    条件：requirement 信息已接管，但 `context.md` 或 checker 通过的 `plans/` 尚未齐备
-   产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、阶段 comment、阶段日志镜像
+   产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、主 issue 阶段 comment、对应文档 issue body 与审计 comment
 4. `PACE-交付经理`
    条件：checker 通过的 `plans/` 已存在，且 `execution-log.md` 尚未完成
-   产物：`execution-log.md`、`runs/`、`coverage.md`、execute comment、执行日志镜像
+   产物：`execution-log.md`、`runs/`、`coverage.md`、execute comment、执行文档 issue body 与审计 comment
 5. `PACE-验收归档经理`
    条件：执行已完成，进入 verify/archive
-   产物：`verification.md`、archive comment、归档结论、验证/归档日志镜像
+   产物：`verification.md`、archive comment、归档结论、验证/归档文档 issue body 与审计 comment
 
 tech phase 的闭环单独处理：
 
@@ -283,12 +297,15 @@ tech phase 的闭环单独处理：
 
 如果它能判断清楚，就直接移交给：
 
+- `PACE-初始化经理`
 - `PACE-需求接管经理`
 - `PACE-阶段经理`
 - `PACE-交付经理`
 - `PACE-验收归档经理`
 
 如果分析后仍然不能唯一判断下一步，就必须明确指出缺什么信息并退回用户，不允许空白等待。
+
+如果当前 phase 明确是 `tech`，调度经理必须停止 requirement 角色链，并要求改走 roadmap 中的 `Owner Skill`。
 
 标准新 issue 不经过调度经理；调度经理只在入口不清晰时使用。调度完成后，若判断为标准新 issue，则交给：
 
@@ -304,8 +321,8 @@ tech phase 的闭环单独处理：
 2. 如果 `tracker.type = github` 且没有 URL，则创建 GitHub issue。
 3. 把 GitHub issue URL 回填到当前 multica issue 的元数据或描述中。
 4. 建立追踪块，至少包含：
-   `GitHub Issue / Current Stage / Current Role / Last Synced At`
-5. 写第一条追踪初始化 comment 到 GitHub issue。
+   `GitHub Issue / Current Stage / Current Step / Current Role / Last Synced At`
+5. 写第一条追踪初始化 comment 到 GitHub 主 issue。
 6. 第一轮必须明确告诉用户：
    - 当前指定的 GitHub 用户：`tracker.github.username`
    - 当前指定的 git name：`git.name`
@@ -344,14 +361,15 @@ pace:intake -> pace:discuss -> pace:plan
 1. 把 issue 挂到 requirement / roadmap / 当前 phase。
 2. 收敛灰区，形成 Locked Decisions。
 3. 生成 executor 可以消费的 plan。
-4. 在阶段边界向 GitHub issue 写 comment：
+4. 在阶段边界向 GitHub 主 issue 写 comment：
    - intake comment
    - discuss comment
    - plan comment
-5. 同步以下阶段日志到 GitHub issue：
+5. 同步以下稳定文档到 GitHub 文档层：
    - intake：受影响的 requirement 条目、受影响的 roadmap phase 条目
    - discuss：`discussion-log.md`、`context.md`、`coverage.md`
    - plan：全部 plan 文件、更新后的 `coverage.md`
+   - 规则：最新版正文写入文档 issue body，更新记录写成审计 comment
 
 如果这一阶段仍存在未决项，不允许进入执行阶段。
 
@@ -374,15 +392,16 @@ pace:execute
 1. 调度执行。
 2. 跟踪 wave 级进展。
 3. 识别 blocker / retry / rescope。
-4. 在以下时机同步 GitHub comment：
+4. 在以下时机同步 GitHub 主 issue comment：
    - execute 开始
    - 每完成一个 plan task
    - 出现 blocker 或需要回退
    - execute 完成
-5. 同步以下执行日志到 GitHub issue：
+5. 同步以下执行文档到 GitHub 文档层：
    - `execution-log.md`
    - 每个 `run summary`
    - execute 阶段更新后的 `coverage.md`
+   - 规则：最新版正文写入文档 issue body，更新记录写成审计 comment
 
 comment 重点写：
 
@@ -424,13 +443,15 @@ GitHub issue 上至少补两条最终 comment：
 - `verify` comment
 - `archive` comment
 
-同时必须同步以下日志：
+同时必须同步以下文档：
 
 - `verification.md`
 - `.pace/archive/index.md` 中当前 phase 对应条目
+- 规则：最新版正文写入文档 issue body，更新记录写成审计 comment
 
 角色最终 comment 模板：
 
+- 初始化经理：[`roles/templates/init-final-comment.template.md`](roles/templates/init-final-comment.template.md)
 - 调度经理：[`roles/templates/dispatch-final-comment.template.md`](roles/templates/dispatch-final-comment.template.md)
 - 需求接管经理：[`roles/templates/issue-intake-final-comment.template.md`](roles/templates/issue-intake-final-comment.template.md)
 - 阶段经理：[`roles/templates/phase-final-comment.template.md`](roles/templates/phase-final-comment.template.md)
@@ -447,6 +468,7 @@ GitHub issue 上至少补两条最终 comment：
 
 ```text
 Multica 新建标准 issue
+  -> PACE-初始化经理（仅当工作区未就绪）
   -> PACE-需求接管经理
   -> PACE-阶段经理
   -> PACE-交付经理
@@ -464,7 +486,7 @@ Multica 新建标准 issue
 
 ## GitHub 同步要求
 
-下面这些 comment 是硬要求：
+下面这些主 issue comment 是硬要求：
 
 1. `intake`
 2. `discuss`
@@ -473,7 +495,7 @@ Multica 新建标准 issue
 5. `verify`
 6. `archive`
 
-下面这些阶段日志镜像也是硬要求：
+下面这些稳定文档也必须进入 GitHub 文档层：
 
 1. `tracking block`
 2. intake 影响到的 `requirements.md` / `roadmap.md` 条目
@@ -493,57 +515,65 @@ Multica 新建标准 issue
 - [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
 
 最终 handoff / closeout comment 不要复用通用模板，必须使用上面的按角色模板。
-阶段日志镜像 comment 也不要混进最终 handoff comment，必须单独发。
+文档审计 comment 也不要混进最终 handoff comment，必须单独发。
 
 ## 会话真相源
 
 multica 模式下，本轮执行先读：
 
 1. `.pace/session.yaml`
-2. GitHub issue 时间线
-3. `.pace/` 阶段产物
+2. GitHub 主 issue 的追踪块与阶段结论 comment
+3. GitHub 文档 issue 的最新版 body 与审计 comment
+4. `.pace/` 阶段产物
 
 其中：
 
 - `.pace/session.yaml` 负责提供本轮 config + context
-- GitHub issue 负责保存跨轮次 comment 和日志镜像
-- `.pace/` 负责保存本轮工作区产物
+- 主 issue comment 负责保存跨轮次阶段状态、handoff 与关闭结论
+- 文档 issue body 负责保存最新版稳定正文
+- 文档 issue comment 负责保存正文更新审计记录
+- `.pace/` 负责保存本轮工作区缓存副本
+- 若 GitHub 与 `.pace/` 冲突，默认以 GitHub 为准
+- 若主 issue comment 与文档 issue body 冲突：
+  - 阶段状态 / handoff / closeout 以主 issue comment 为准
+  - 正文内容以文档 issue body 为准
 
 如果 `.pace/session.yaml` 缺失，roles 必须停止并要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica`。
 
-## 阶段日志同步规则
+## 文档同步规则
 
-当某个阶段日志文件被创建或更新后，必须在当前 issue 里追加对应日志 comment。
+当某个稳定阶段文档被创建或更新后，必须同步到 GitHub 文档层。
 
 同步规则：
 
-1. 日志 comment 必须使用 [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
-2. 同步模式固定为“全文镜像”，不能只写摘要
-3. 单条 comment 最多 6000 个字符
-4. 超过 6000 个字符时，必须拆成多条连续 comment，标题写成 `第 x/n 段`
-5. 分段必须保持原文顺序，不能重排内容
-6. 每条日志 comment 都必须写明源文件路径
-7. 最终 handoff comment 只能引用这些日志 comment，不能替代这些日志 comment
+1. 最新版正文写入对应文档 issue 的 body，优先通过 `pace-issue-doc update-body`
+2. 每次正文更新后，必须追加一条审计 comment
+3. 审计 comment 必须使用 [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
+4. 审计 comment 只记录来源文件、文档类型、修订号、变更摘要，不再承担全文镜像
+5. 单个文档 issue 的 body 默认限制 `60000` 字符
+6. 超过限制时，必须创建新的文档 issue，更新主 issue 或交接 comment 中的索引
+7. 最终 handoff comment 只能引用这些文档 issue / 审计 comment，不能替代正文
 
 ## 一条完整示例
 
 ```text
 1. 你在 Multica 创建 issue: "支持批量导出订单 CSV"
-2. 分配给 PACE-需求接管经理
-3. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
-4. 它写追踪初始化 comment，然后 handoff 给 PACE-阶段经理
-5. PACE-阶段经理 依次跑 pace:intake / pace:discuss / pace:plan
-6. plan ready 后，handoff 给 PACE-交付经理
-7. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment
-8. 执行完成后，handoff 给 PACE-验收归档经理
-9. PACE-验收归档经理 跑 pace:verify / pace:archive
-10. GitHub issue 留下最终验收与归档 comment，流程结束
+2. 如果当前仓库工作区未就绪，先交给 PACE-初始化经理
+3. 工作区就绪后，分配给 PACE-需求接管经理
+4. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
+5. 它写追踪初始化 comment，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
+6. PACE-阶段经理 依次跑 pace:intake / pace:discuss / pace:plan
+7. plan ready 后，handoff 给 PACE-交付经理
+8. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment，同时更新执行文档 issue
+9. 执行完成后，handoff 给 PACE-验收归档经理
+10. PACE-验收归档经理 跑 pace:verify / pace:archive
+11. GitHub 主 issue 留下最终验收与归档 comment，相关文档 issue 留下最新版正文与审计记录，流程结束
 ```
 
 ## 日常使用规则
 
 1. 人只负责创建 issue、补充业务目标、查看进度时间线。
-2. 标准新 issue 的第一位角色永远是 `PACE-需求接管经理`；只有入口不明确时才先交给 `PACE-调度经理`。
-3. 不要跳过 GitHub issue URL 和阶段 comment。
-4. 不要靠 comment 反推内部状态，内部状态以 `.pace/` 为准。
+2. 工作区未就绪时第一位角色是 `PACE-初始化经理`；工作区已就绪后，标准新 issue 的第一位角色才是 `PACE-需求接管经理`；只有入口不明确时才先交给 `PACE-调度经理`。
+3. 不要跳过 GitHub issue URL、主 issue 阶段 comment 和文档 issue 正文同步。
+4. 不要只靠 `.pace/` 本地缓存判断跨轮次状态；若与 GitHub 冲突，以 GitHub 为准。
 5. 卡住时先看 `pace:status` 和当前角色是否必须 handoff，而不是直接改角色职责。

@@ -16,6 +16,7 @@
 - 已执行技能：
   - <pace:bootstrap | pace:map-codebase | 无>
 - 当前结论：<为什么已可进入后续角色，或为什么仍然不能继续>
+- 下一去向：<PACE-需求接管经理 | PACE-调度经理 | Owner Skill:<skill> | 无>
 - 下一角色：<PACE-需求接管经理 | PACE-调度经理 | 无>
 - 下一技能：<pace:intake | pace:status | 无>
 - 下一阶段必需输入：

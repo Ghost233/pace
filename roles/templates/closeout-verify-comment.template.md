@@ -5,6 +5,7 @@
 
 - 角色：PACE-验收归档经理
 - 阶段：<阶段编号>
+- 主 Issue：<issue 链接>
 - 最终状态：<通过(pass) | 部分通过(partial) | 失败(fail)>
 - 阻塞缺口数：<0 | N>
 - 目标检查：
@@ -14,6 +15,11 @@
 - 证据：
   - `verification.md`
   - <测试 / 运行记录 / 计划文件>
+- 文档更新：
+  - 文档 Issue：<issue 链接>
+  - 文档类型：verification
+  - 正文修订：<rev-N>
+  - 审计 Comment：<comment 链接>
 - 当前结论：<为什么通过，或为什么不能归档>
 - 下一角色：<PACE-验收归档经理 | PACE-交付经理 | PACE-阶段经理>
 - 下一技能：<pace:archive | pace:execute | pace:plan | pace:discuss>

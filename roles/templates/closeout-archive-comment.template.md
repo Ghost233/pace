@@ -5,11 +5,17 @@
 
 - 角色：PACE-验收归档经理
 - 阶段：<阶段编号>
+- 主 Issue：<issue 链接>
 - 归档结果：<已归档 | 已重新打开>
 - 验证来源：
   - `verification.md`
 - 已归档产物：
   - <归档路径 / 包含的产物>
+- 文档更新：
+  - 文档 Issue：<issue 链接>
+  - 文档类型：archive-entry
+  - 正文修订：<rev-N>
+  - 审计 Comment：<comment 链接>
 - 当前结论：<为什么归档完成，或为什么重新打开>
 - 下一角色：<无 | PACE-阶段经理 | PACE-交付经理>
 - 下一技能：<无 | pace:plan | pace:execute>

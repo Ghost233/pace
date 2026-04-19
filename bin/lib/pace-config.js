@@ -26,48 +26,165 @@ function stripComment(line) {
 function parseScalar(raw) {
   if (raw === 'true') return true;
   if (raw === 'false') return false;
+  if (raw === 'null') return null;
   if (/^-?\d+$/.test(raw)) return Number(raw);
-  if (
-    (raw.startsWith('"') && raw.endsWith('"')) ||
-    (raw.startsWith("'") && raw.endsWith("'"))
-  ) {
-    return raw.slice(1, -1);
+  if (raw.startsWith('"') && raw.endsWith('"')) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw.slice(1, -1);
+    }
+  }
+  if (raw.startsWith("'") && raw.endsWith("'")) {
+    return raw.slice(1, -1).replace(/\\'/g, "'");
+  }
+  if ((raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('{') && raw.endsWith('}'))) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
   }
   return raw;
 }
 
 function parseYaml(text) {
-  const root = {};
-  const stack = [{ indent: -1, value: root }];
-  const lines = text.split(/\r?\n/);
+  const rawLines = text.split(/\r?\n/).map((original) => ({
+    original,
+    trimmed: stripComment(original),
+  }));
+  let index = 0;
 
-  for (const originalLine of lines) {
-    const withoutComment = stripComment(originalLine);
-    if (!withoutComment.trim()) continue;
-
-    const indent = withoutComment.match(/^ */)[0].length;
-    const line = withoutComment.trim();
-    const match = line.match(/^([^:]+):(.*)$/);
-    if (!match) continue;
-
-    const key = match[1].trim();
-    const rawValue = match[2].trim();
-
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-
-    const parent = stack[stack.length - 1].value;
-
-    if (!rawValue) {
-      parent[key] = {};
-      stack.push({ indent, value: parent[key] });
-    } else {
-      parent[key] = parseScalar(rawValue);
+  function skipBlank() {
+    while (index < rawLines.length && !rawLines[index].trimmed.trim()) {
+      index += 1;
     }
   }
 
-  return root;
+  function indentOf(line) {
+    return line.match(/^ */)[0].length;
+  }
+
+  function parseBlockScalar(baseIndent, mode) {
+    const chunks = [];
+    while (index < rawLines.length) {
+      const line = rawLines[index];
+      if (!line.original.trim()) {
+        chunks.push('');
+        index += 1;
+        continue;
+      }
+      const indent = indentOf(line.original);
+      if (indent < baseIndent) {
+        break;
+      }
+      chunks.push(line.original.slice(baseIndent));
+      index += 1;
+    }
+    if (mode === '>') {
+      return chunks.join('\n').replace(/\n+/g, ' ').trim();
+    }
+    return chunks.join('\n');
+  }
+
+  function parseNode(indent) {
+    skipBlank();
+    if (index >= rawLines.length) return {};
+    const line = rawLines[index].trimmed;
+    const currentIndent = indentOf(line);
+    if (line.trim().startsWith('- ')) {
+      return parseArray(indent);
+    }
+    if (currentIndent < indent) {
+      return {};
+    }
+    return parseObject(indent);
+  }
+
+  function parseObject(indent, seed = {}) {
+    const value = seed;
+    while (index < rawLines.length) {
+      skipBlank();
+      if (index >= rawLines.length) break;
+      const line = rawLines[index].trimmed;
+      const currentIndent = indentOf(line);
+      const trimmed = line.trim();
+      if (currentIndent < indent || trimmed.startsWith('- ')) {
+        break;
+      }
+      if (currentIndent > indent) {
+        break;
+      }
+      const match = trimmed.match(/^([^:]+):(.*)$/);
+      if (!match) {
+        index += 1;
+        continue;
+      }
+      const key = match[1].trim();
+      const rawValue = match[2].trim();
+      index += 1;
+      if (!rawValue) {
+        value[key] = parseNode(indent + 2);
+      } else if (rawValue === '|' || rawValue === '>') {
+        value[key] = parseBlockScalar(indent + 2, rawValue);
+      } else {
+        value[key] = parseScalar(rawValue);
+      }
+    }
+    return value;
+  }
+
+  function parseArray(indent) {
+    const value = [];
+    while (index < rawLines.length) {
+      skipBlank();
+      if (index >= rawLines.length) break;
+      const line = rawLines[index].trimmed;
+      const currentIndent = indentOf(line);
+      const trimmed = line.trim();
+      if (currentIndent < indent || !trimmed.startsWith('- ')) {
+        break;
+      }
+      const rest = trimmed.slice(2).trim();
+      index += 1;
+
+      if (!rest) {
+        value.push(parseNode(indent + 2));
+        continue;
+      }
+
+      const match = rest.match(/^([^:]+):(.*)$/);
+      if (!match) {
+        value.push(parseScalar(rest));
+        continue;
+      }
+
+      const key = match[1].trim();
+      const rawValue = match[2].trim();
+      const item = {};
+      if (!rawValue) {
+        item[key] = parseNode(indent + 2);
+      } else if (rawValue === '|' || rawValue === '>') {
+        item[key] = parseBlockScalar(indent + 2, rawValue);
+      } else {
+        item[key] = parseScalar(rawValue);
+      }
+
+      skipBlank();
+      if (index < rawLines.length) {
+        const nextLine = rawLines[index].trimmed;
+        const nextIndent = indentOf(nextLine);
+        const nextTrimmed = nextLine.trim();
+        if (nextIndent >= indent + 2 && nextTrimmed && !nextTrimmed.startsWith('- ')) {
+          parseObject(indent + 2, item);
+        }
+      }
+      value.push(item);
+    }
+    return value;
+  }
+
+  return parseNode(0);
 }
 
 function formatScalar(value) {
@@ -88,7 +205,9 @@ function dumpYaml(value, indent = 0) {
   const prefix = ' '.repeat(indent);
 
   for (const [key, item] of Object.entries(value)) {
-    if (item && typeof item === 'object' && !Array.isArray(item)) {
+    if (Array.isArray(item)) {
+      lines.push(`${prefix}${key}: ${JSON.stringify(item)}`);
+    } else if (item && typeof item === 'object') {
       lines.push(`${prefix}${key}:`);
       lines.push(dumpYaml(item, indent + 2));
     } else {

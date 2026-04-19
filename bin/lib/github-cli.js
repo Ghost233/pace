@@ -52,7 +52,7 @@ function readGithubContext(session) {
   };
 }
 
-function ensureGithubSession(session, { requireRepo = false } = {}) {
+function ensureGithubSession(session, { requireRepo = false, repoOverride = '' } = {}) {
   const context = readGithubContext(session);
   ensureGhInstalled();
   switchUser(context.username);
@@ -63,7 +63,7 @@ function ensureGithubSession(session, { requireRepo = false } = {}) {
   if (context.username && login !== context.username) {
     throw new Error(`当前 GitHub 用户与 session 不一致: 当前=${login}, 期望=${context.username}`);
   }
-  let repo = context.repo;
+  let repo = repoOverride || context.repo;
   if (requireRepo) {
     if (!repo) {
       throw new Error('当前未配置 GitHub repo，请先运行 `node <pace-bin>/pace-init.js multica` 或补齐 `.pace/session.yaml`');

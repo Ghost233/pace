@@ -4,7 +4,7 @@
 ## [PACE] 追踪初始化 - 可进入阶段收敛
 
 - 角色：PACE-需求接管经理
-- GitHub Issue：<issue 链接>
+- 主 Issue：<issue 链接>
 - 需求归类：<新需求 | 阶段变更 | 缺陷修复 | 阻塞升级>
 - 目标摘要：
   - <一句话目标>
@@ -16,8 +16,11 @@
   - <阶段 xx 或待 roadmap 调整>
 - 外部依赖：
   - <没有则写 无>
-- 追踪已更新：
-  - <tracking block 路径或 comment 引用>
+- 文档更新：
+  - 追踪文档 Issue：<无 | issue 链接>
+  - 文档类型：<tracking-block | requirement-entry | roadmap-entry>
+  - 正文修订：<n/a | rev-1>
+  - 审计 Comment：<无 | comment 链接>
 - 下一角色：PACE-阶段经理
 - 下一技能：pace:intake
 - 下一阶段必需输入：

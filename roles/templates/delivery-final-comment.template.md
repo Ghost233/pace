@@ -5,6 +5,7 @@
 
 - 角色：PACE-交付经理
 - 阶段：<阶段编号>
+- 主 Issue：<issue 链接>
 - 已完成计划：
   - <计划编号>
 - 覆盖状态：
@@ -13,6 +14,11 @@
   - `runs/<file>.md`
 - 执行日志：
   - `execution-log.md`
+- 文档更新：
+  - 文档 Issue：<issue 链接>
+  - 文档类型：<execution-log | run-summary | coverage>
+  - 正文修订：<rev-N>
+  - 审计 Comment：<comment 链接>
 - 当前结论：<为什么已可进入验证>
 - 下一角色：PACE-验收归档经理
 - 下一技能：pace:verify

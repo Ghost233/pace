@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
-- scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-git.js`、`~/.codex/skills/pace/bin/pace-gh.js`
+- scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-git.js`、`~/.codex/skills/pace/bin/pace-gh.js`、`~/.codex/skills/pace/bin/pace-issue-doc.js`
 
 这些脚本直接用 `node` 调用，不再额外生成 PATH 命令入口。
 
@@ -83,6 +83,14 @@ gh auth switch -u <tracker.github.username>
 
 如果你希望限制误操作，推荐只通过 `pace-git` 操作仓库，而不要直接运行原生 `git`。`pace-git` 只开放少量安全子命令，并默认拒绝危险操作；如果 session 中配置了 GitHub 用户，它也只会在当前机器已完成 GitHub 登录的前提下切到对应用户。
 
+脚本职责：
+
+- `pace-init.js`：初始化 `.pace/session.yaml`
+- `pace-merge.js`：查看模板合并结果
+- `pace-git.js`：受限 git 操作
+- `pace-gh.js`：受限 GitHub issue 操作
+- `pace-issue-doc.js`：更新 issue body 文档与审计 comment
+
 ## 快速开始
 
 ```bash
@@ -98,6 +106,7 @@ node "$HOME/.codex/skills/pace/bin/pace-git.js" info
 # 3. 受限 GitHub 操作（推荐）
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md
 
 # 4. 开始使用
 /pace:bootstrap → 创建新项目的 .pace/ 工作区
@@ -139,7 +148,7 @@ intake → discuss → plan → execute → verify → archive
 PACE 现在推荐拆成两层：
 
 - **Skills 层**：`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify` 等，负责把某一步真正做完。
-- **Roles 层**：用于 `executor=multica` 且 `tracker.type=github` 的工作区前置准备与 requirement phase 管理，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub issue comment”。
+- **Roles 层**：用于 `executor=multica` 且 `tracker.type=github` 的工作区前置准备与 requirement phase 管理，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub 主 issue 与文档 issue”。
 
 推荐的最小角色集：
 
@@ -168,15 +177,21 @@ PACE 现在推荐拆成两层：
 
 1. 每个新 issue 在进入 phase 流程前，必须有一个规范的 GitHub issue URL。
 2. 如果用户没有提供 GitHub issue URL，则由 `PACE-需求接管经理` 创建，并回填到当前流程系统的 issue 元数据中。
-3. 每次阶段切换至少同步一条 GitHub comment：
-   `intake`、`discuss`、`plan`、`execute`、`verify`、`archive`
-4. 当 `tracker.type = github` 且 `executor = multica` 时，阶段日志必须同步到 GitHub issue；GitHub issue 必须能独立还原当前阶段的关键日志，不允许只写结论摘要。
-5. 在 `tracker.type = github` 模式下，GitHub issue 的追踪块、阶段 comment 和阶段日志镜像才是跨轮次真相源；`.pace/` 只是当前工作区产物，不保证持续存在。
-6. 阶段日志过长时，必须分成多条连续 comment 上传；每条 comment 最多 6000 个字符，必须带 `第 x/n 段` 标记，并保持原文顺序。
+3. 每次阶段切换至少同步一条 GitHub 主 issue comment：
+   `tracking-init`、`intake`、`discuss`、`plan`、`execute`、`verify`、`archive`
+4. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须同步到 GitHub 文档层：
+   - 主 issue comment：阶段结论、handoff、阻塞、归档状态
+   - 文档 issue body：最新版正文，例如 `context.md`、计划文件、`execution-log.md`、`verification.md`
+   - 文档审计 comment：记录某次 body 更新来自哪个文件、哪个角色、哪个修订
+5. 在 `tracker.type = github` 模式下，跨轮次真相源不是 `.pace/`，而是：
+   - 主 issue 的追踪块与阶段结论 comment
+   - 文档 issue 的最新版 body
+   - 文档 issue 的审计 comment
+6. 文档正文默认限制在 `60000` 字符以内；超过限制时，必须新建下一个文档 issue，而不是继续把全文拆成多条 comment。
 7. 如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换 GitHub 用户；如果直接使用原生 `gh`，则必须先手工执行 `gh auth switch -u <tracker.github.username>`。如果没有 `gh`、未登录或该用户无权访问仓库，必须停止并明确要求用户在流程外介入。
 8. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
 
-完整的 multica 落地流程、角色创建方式、阶段切换和 GitHub comment 同步规则，见 [README.multica.md](README.multica.md)。
+完整的 multica 落地流程、角色创建方式、阶段切换和 GitHub 文档同步规则，见 [README.multica.md](README.multica.md)。
 
 ## 配置
 
@@ -256,6 +271,7 @@ node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --body-file /tmp/doc.md
 ```
 
 `pace-gh` 只开放白名单命令：
@@ -265,6 +281,13 @@ node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https:
 - `issue-read`
 - `issue-comment`
 - `attachment-download`
+
+`pace-issue-doc` 只处理文档层：
+
+- `check-body`
+- `update-body`
+- `create-doc`
+- `append-audit`
 
 不支持：
 
@@ -399,3 +422,4 @@ pace/
 PACE = **P**lan, **A**ct, **C**heck, **E**volve
 
 对应核心循环：规划 → 执行 → 验证 → 归档迭代
+- 如果当前 phase 是 `tech`，roles 链必须退出并改走 roadmap 中的 `Owner Skill`

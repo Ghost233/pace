@@ -5,6 +5,7 @@
 
 - 角色：PACE-阶段经理
 - 阶段：<阶段编号>
+- 主 Issue：<issue 链接>
 - 覆盖的需求：
   - <REQ-001, REQ-002>
 - 已锁定决策：
@@ -13,6 +14,11 @@
   - `context.md`
   - `coverage.md`
   - `plans/<file>.md`
+- 文档更新：
+  - 文档 Issue：<issue 链接>
+  - 文档类型：<context | coverage | plan-file>
+  - 正文修订：<rev-N>
+  - 审计 Comment：<comment 链接>
 - Checker 结果：
   - <通过(pass)>
 - 当前结论：<为什么已可进入执行>

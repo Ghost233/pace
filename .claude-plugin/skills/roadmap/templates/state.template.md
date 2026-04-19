@@ -15,7 +15,7 @@
 
 ## Current Step
 
-- bootstrap | roadmap | discuss | plan | execute | verify | archive
+- setup | bootstrap | map-codebase | roadmap | discuss | plan | execute | verify | archive
 
 ## Recommended Next Skill
 

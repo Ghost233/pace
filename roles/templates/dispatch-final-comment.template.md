@@ -6,8 +6,9 @@
 - 角色：PACE-调度经理
 - 当前问题类型：<新需求 | 阶段变更 | 执行阻塞 | 验收回退 | 未知>
 - 使用证据：
-  - <追踪块 / 最新阶段 comment / verification.md / 状态冲突>
+  - <追踪块 / 最新阶段 comment / 文档 issue body / verification.md / 状态冲突>
 - 当前结论：<为什么判定为这个下一角色，或为什么不能判定>
+- 下一去向：<PACE-初始化经理 | PACE-需求接管经理 | PACE-阶段经理 | PACE-交付经理 | PACE-验收归档经理 | Owner Skill:<skill> | 无>
 - 下一角色：<PACE-初始化经理 | PACE-需求接管经理 | PACE-阶段经理 | PACE-交付经理 | PACE-验收归档经理 | 无>
 - 下一技能：<pace:... | 无>
 - 下一阶段必需输入：

@@ -41,6 +41,7 @@ SOURCE_ROOT="$(load_source)"
 SKILLS_SRC="$SOURCE_ROOT/.claude-plugin/skills"
 PACE_CONFIG_SRC="$SOURCE_ROOT/.pace"
 PACE_BIN_SRC="$SOURCE_ROOT/bin"
+PACE_ROLES_SRC="$SOURCE_ROOT/roles"
 
 if [[ ! -d "$SKILLS_SRC" ]]; then
   echo "未找到技能目录: $SKILLS_SRC" >&2
@@ -57,30 +58,41 @@ if [[ ! -d "$PACE_BIN_SRC" ]]; then
   exit 1
 fi
 
+if [[ ! -d "$PACE_ROLES_SRC" ]]; then
+  echo "未找到 roles 目录: $PACE_ROLES_SRC" >&2
+  exit 1
+fi
+
 mkdir -p "$PACE_HOME"
 
 rsync -a --delete "$SKILLS_SRC/" "$PACE_HOME/"
 mkdir -p "$PACE_HOME/bin" "$PACE_HOME/.pace"
 rsync -a --delete "$PACE_CONFIG_SRC/" "$PACE_HOME/.pace/"
 rsync -a --delete "$PACE_BIN_SRC/" "$PACE_HOME/bin/"
+rsync -a --delete "$PACE_ROLES_SRC/" "$PACE_HOME/roles/"
 chmod +x \
   "$PACE_HOME/bin/pace-merge.js" \
   "$PACE_HOME/bin/pace-init.js" \
   "$PACE_HOME/bin/pace-git.js" \
-  "$PACE_HOME/bin/pace-gh.js"
+  "$PACE_HOME/bin/pace-gh.js" \
+  "$PACE_HOME/bin/pace-issue-doc.js"
 
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js
+- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js, $PACE_HOME/bin/pace-issue-doc.js
 
 之后可直接在任意项目根目录运行:
 
-  node "$PACE_HOME/bin/pace-merge.js" local
-  node "$PACE_HOME/bin/pace-merge.js" multica
   node "$PACE_HOME/bin/pace-init.js" local
   node "$PACE_HOME/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
   node "$PACE_HOME/bin/pace-git.js" status
   node "$PACE_HOME/bin/pace-gh.js" issue-read --issue 72
+  node "$PACE_HOME/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md
+
+仅在需要排查模板合并结果时，再运行:
+
+  node "$PACE_HOME/bin/pace-merge.js" local
+  node "$PACE_HOME/bin/pace-merge.js" multica
 EOF

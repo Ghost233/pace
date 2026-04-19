@@ -97,6 +97,30 @@ function ensureRepo(repo) {
   }
 }
 
+function ensureIssueInSessionRepo(issue, sessionRepo) {
+  if (sessionRepo && issue.repo !== sessionRepo) {
+    throw new Error(`目标 issue 不属于当前 session 仓库: ${issue.repo}`);
+  }
+}
+
+function isAllowedAttachmentUrl(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  const host = url.hostname;
+  const pathname = url.pathname || '';
+  if (host === 'github.com' && pathname.startsWith('/user-attachments/files/')) {
+    return true;
+  }
+  if (host === 'user-images.githubusercontent.com' || host === 'private-user-images.githubusercontent.com') {
+    return true;
+  }
+  return false;
+}
+
 function parseIssueRef(issueRef, defaultRepo) {
   if (!issueRef) {
     throw new Error('缺少 --issue');
@@ -133,8 +157,10 @@ function commandRepoCheck(context) {
 }
 
 function commandIssueRead(context, options) {
+  ensureRepo(context.repo);
   const issue = parseIssueRef(options.issue, context.repo);
-  ensureGithubSession(context.session, { requireRepo: true });
+  ensureIssueInSessionRepo(issue, context.repo);
+  ensureGithubSession(context.session, { requireRepo: true, repoOverride: issue.repo });
   const fields = ['number', 'title', 'body', 'state', 'author', 'labels', 'url'];
   if (options.comments) {
     fields.push('comments');
@@ -144,11 +170,13 @@ function commandIssueRead(context, options) {
 }
 
 function commandIssueComment(context, options) {
+  ensureRepo(context.repo);
   const issue = parseIssueRef(options.issue, context.repo);
   if (!options.body) {
     throw new Error('issue-comment 缺少 --body');
   }
-  ensureGithubSession(context.session, { requireRepo: true });
+  ensureIssueInSessionRepo(issue, context.repo);
+  ensureGithubSession(context.session, { requireRepo: true, repoOverride: issue.repo });
   run('gh', ['issue', 'comment', String(issue.number), '--repo', issue.repo, '--body', options.body], { stdio: 'inherit' });
 }
 
@@ -165,8 +193,24 @@ function filenameFromUrl(url) {
 function commandAttachmentDownload(context, options) {
   ensureGithubSession(context.session, { requireRepo: true });
   const url = options.url;
+  const issueRef = options.issue || '';
   if (!url) {
     throw new Error('attachment-download 缺少 --url');
+  }
+  if (!isAllowedAttachmentUrl(url)) {
+    throw new Error('attachment-download 只允许下载 GitHub 附件地址');
+  }
+  if (issueRef) {
+    ensureRepo(context.repo);
+    const issue = parseIssueRef(issueRef, context.repo);
+    ensureIssueInSessionRepo(issue, context.repo);
+    const raw = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'body,comments']);
+    const payload = JSON.parse(raw);
+    const body = payload.body || '';
+    const comments = Array.isArray(payload.comments) ? payload.comments.map((item) => item.body || '').join('\n') : '';
+    if (!`${body}\n${comments}`.includes(url)) {
+      throw new Error('attachment-download 只允许下载当前 issue 正文或评论中出现过的附件 URL');
+    }
   }
   const token = run('gh', ['auth', 'token']);
   if (!token) {
