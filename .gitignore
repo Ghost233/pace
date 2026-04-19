@@ -4,3 +4,4 @@ node_modules/
 .pace/session.yaml
 .omc/
 .omx/
+.claude/settings.local*
