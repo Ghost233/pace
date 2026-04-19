@@ -13,6 +13,10 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 - 配置变更后输出摘要确认
 - 当用户明确说明运行在外部编排系统时，`executor` 必须写为 `multica`
 - 当 `tracker.type=github` 且 `executor=multica` 时，默认开启 roles 配置
+- 当前只支持两种稳定组合：
+  - `executor=claude-code + tracker.type=local + roles.enabled=false`
+  - `executor=multica + tracker.type=github + roles.enabled=true`
+- 其他组合一律视为不支持，必须停止并要求用户重新选择
 
 ## 必需产物
 
@@ -46,7 +50,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 询问用户：
 
 - **本地** — 所有工作日志保存在 `.pace/` 目录，不依赖外部服务
-- **GitHub Issues** — 将工作日志同步到 GitHub Issues，支持层级结构（Project → Phase → Wave）
+- **GitHub Issues** — 将阶段状态写到主 issue，将稳定正文写到文档 issue
 
 ### 第二步补充：选择执行模式
 
@@ -148,15 +152,15 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 # 由 pace:config 生成
 
 config:
-  executor: claude-code                # claude-code | multica | manual
+  executor: claude-code                # claude-code | multica
   tracker:
     type: local                        # local | github
     github:
       repo: ""                         # owner/repo
       username: ""                     # GitHub 用户名
       verified: false                  # gh 连通性是否已验证
-      create_missing_issue: false      # 缺失 GitHub issue URL 时是否自动创建
-      sync_stage_comments: false       # 是否在阶段边界同步 comment
+      create_missing_issue: true       # 缺失 GitHub issue URL 时是否自动创建
+      sync_stage_comments: true        # 是否在阶段边界同步主 issue comment
   git:
     name: ""                           # git commit user.name
     email: ""                          # git commit user.email
@@ -196,6 +200,7 @@ context:
 ```
 
 如果原来的 `.pace/session.yaml` 已存在，写入时保留原有 `context` 区块，除非用户明确要求一起覆盖当前 issue / PR / branch / role。
+若用户选出的组合不属于上面的两种稳定组合，必须立即停止，不写入 session。
 
 ### 第九步：输出确认摘要
 
@@ -222,6 +227,7 @@ git 身份：{config.git.name} <{config.git.email}>
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
 - 但必须明确告诉后续角色：优先使用 `pace-gh`；只有在当前机器已完成 GitHub 登录时，才允许在已登录账号之间切换；直接使用原生 `gh` 时，仍需要手工 `gh auth switch -u <tracker.github.username>`
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
+- 不允许落盘不支持的模式组合
 
 ## 后续路由
 

@@ -270,7 +270,7 @@ node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"
-node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"
+node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --issue 72 --url "https://github.com/user-attachments/files/xxx/file.png"
 node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --body-file /tmp/doc.md
 ```
 
@@ -300,7 +300,7 @@ node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --b
 
 ```yaml
 # 执行引擎
-executor: claude-code    # claude-code | multica | manual
+executor: claude-code    # claude-code | multica
 
 # 文档追踪
 tracker:
@@ -309,8 +309,8 @@ tracker:
     repo: ""             # owner/repo
     username: ""         # GitHub 用户名
     verified: false      # gh 连通性验证
-    create_missing_issue: false
-    sync_stage_comments: false
+    create_missing_issue: true
+    sync_stage_comments: true
 
 git:
   name: ""               # git commit user.name
@@ -403,7 +403,6 @@ pace/
 │   ├── config.local.yaml
 │   └── config.multica.yaml
 ├── roles/                    # 给 multica 等外部编排系统使用的角色定义
-│   ├── README.md
 │   ├── 需求接管经理.md
 │   ├── 阶段经理.md
 │   ├── 交付经理.md

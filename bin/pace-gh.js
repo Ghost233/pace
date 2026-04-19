@@ -23,7 +23,7 @@ function usage(exitCode = 0) {
     '允许的命令:',
     '  issue-read --issue <url|number> [--comments]',
     '  issue-comment --issue <url|number> --body <text>',
-    '  attachment-download --url <attachment-url> [--output <path>]',
+    '  attachment-download --issue <url|number> --url <attachment-url> [--output <path>]',
     '  whoami',
     '  repo-check',
     '',
@@ -32,6 +32,7 @@ function usage(exitCode = 0) {
     '  --comments        issue-read 时额外读取评论',
     '  --body            issue-comment 必填，表示评论正文',
     '  --url             attachment-download 必填，表示附件 URL',
+    '  --issue           attachment-download 必填，且附件必须出现在该 issue 的正文或评论中',
     '  --output          attachment-download 可选，默认为当前目录下的原文件名',
     '',
     '配置来源:',
@@ -48,7 +49,7 @@ function usage(exitCode = 0) {
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check',
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments',
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"',
-    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --url "https://github.com/user-attachments/files/xxx/file.png"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --issue 72 --url "https://github.com/user-attachments/files/xxx/file.png"',
   ].join('\n');
   console.error(text);
   process.exit(exitCode);
@@ -197,20 +198,21 @@ function commandAttachmentDownload(context, options) {
   if (!url) {
     throw new Error('attachment-download 缺少 --url');
   }
+  if (!issueRef) {
+    throw new Error('attachment-download 缺少 --issue');
+  }
   if (!isAllowedAttachmentUrl(url)) {
     throw new Error('attachment-download 只允许下载 GitHub 附件地址');
   }
-  if (issueRef) {
-    ensureRepo(context.repo);
-    const issue = parseIssueRef(issueRef, context.repo);
-    ensureIssueInSessionRepo(issue, context.repo);
-    const raw = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'body,comments']);
-    const payload = JSON.parse(raw);
-    const body = payload.body || '';
-    const comments = Array.isArray(payload.comments) ? payload.comments.map((item) => item.body || '').join('\n') : '';
-    if (!`${body}\n${comments}`.includes(url)) {
-      throw new Error('attachment-download 只允许下载当前 issue 正文或评论中出现过的附件 URL');
-    }
+  ensureRepo(context.repo);
+  const issue = parseIssueRef(issueRef, context.repo);
+  ensureIssueInSessionRepo(issue, context.repo);
+  const raw = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'body,comments']);
+  const payload = JSON.parse(raw);
+  const body = payload.body || '';
+  const comments = Array.isArray(payload.comments) ? payload.comments.map((item) => item.body || '').join('\n') : '';
+  if (!`${body}\n${comments}`.includes(url)) {
+    throw new Error('attachment-download 只允许下载当前 issue 正文或评论中出现过的附件 URL');
   }
   const token = run('gh', ['auth', 'token']);
   if (!token) {

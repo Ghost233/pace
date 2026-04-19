@@ -25,6 +25,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 更新 `.pace/state.md`
 - 将 run summaries 写入 `.pace/phases/<phase>/runs/`
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue / 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
 - 默认按 wave 并行执行，以下情况串行：
   - 两个 plan 修改同一文件
   - 两个 plan 有显式 Depends On 关系
@@ -61,6 +62,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 ### 1. 初始化
 
 - 解析目标 phase
+- 若 `multica + github` 且当前工作区未确认已恢复，立即停止并要求先恢复/同步
 - 索引该 phase 下所有 plan 文件
 - 分离 complete 与 incomplete plans
 - 读取 coverage.md

@@ -130,6 +130,31 @@ function currentBranch() {
   return runGit(['branch', '--show-current']);
 }
 
+function parseGitHubRepoFromRemote(remoteUrl) {
+  const match = remoteUrl.match(/github\.com[:/](.+?)(?:\.git)?$/);
+  return match ? match[1] : '';
+}
+
+function currentOriginRepo() {
+  const remoteUrl = runGit(['remote', 'get-url', 'origin']);
+  return parseGitHubRepoFromRemote(remoteUrl);
+}
+
+function ensureSessionBranchMatchesCurrent(session, commandName) {
+  const sessionBranch = session?.data?.context?.git?.branch || '';
+  if (!sessionBranch) {
+    return currentBranch();
+  }
+  const current = currentBranch();
+  if (!current) {
+    throw new Error(`无法确定当前分支，不能执行 ${commandName}`);
+  }
+  if (sessionBranch !== current) {
+    throw new Error(`当前分支与 session 不一致: 当前=${current}, session=${sessionBranch}；请重新运行 pace-init`);
+  }
+  return current;
+}
+
 function ensureNoForceFlags(argv) {
   const blocked = argv.filter((item) => item === '--force' || item === '-f');
   if (blocked.length) {
@@ -199,6 +224,7 @@ function main() {
       case 'commit': {
         ensureSessionForWrite(session, 'commit');
         maybeEnsureGithubSwitch(session, { requireRepo: false });
+        ensureSessionBranchMatchesCurrent(session, 'commit');
         const message = ensureCommitMessage(rest);
         if (!hasStagedChanges()) {
           throw new Error('当前没有已暂存改动，不能执行 commit');
@@ -208,18 +234,18 @@ function main() {
       }
       case 'push': {
         ensureSessionForWrite(session, 'push');
-        maybeEnsureGithubSwitch(session, { requireRepo: true });
+        const ghState = maybeEnsureGithubSwitch(session, { requireRepo: true });
         ensureNoForceFlags(rest);
         if (rest.length) {
           throw new Error('push 不接受额外参数；固定推送到 origin 当前分支');
         }
-        const current = currentBranch();
-        if (!current) {
-          throw new Error('无法确定当前分支，不能执行 push');
+        const current = ensureSessionBranchMatchesCurrent(session, 'push');
+        const originRepo = currentOriginRepo();
+        if (!originRepo) {
+          throw new Error('无法从 origin 远端解析 GitHub repo，不能执行 push');
         }
-        const sessionBranch = session?.data?.context?.git?.branch || '';
-        if (sessionBranch && sessionBranch !== current) {
-          throw new Error(`当前分支与 session 不一致: 当前=${current}, session=${sessionBranch}；请重新运行 pace-init`);
+        if (ghState?.repo && originRepo !== ghState.repo) {
+          throw new Error(`origin 远端与 session.repo 不一致: origin=${originRepo}, session=${ghState.repo}`);
         }
         runGit(['push', 'origin', current], { stdio: 'inherit' });
         break;

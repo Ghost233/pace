@@ -37,7 +37,7 @@ function usage() {
       '  --repo         未传时，尝试从 `git remote get-url origin` 推导。',
       '  --branch       未传时，尝试读取当前 git 分支。',
       '  --base-branch  未传时，尝试读取 `origin/HEAD`，失败则回退为 `main`。',
-      '  --github-user  未传时，尝试读取 `gh api user --jq .login`。',
+      '  --github-user  multica 模式必填；local 模式未传则保留为空。',
       '  --git-name     未传时，尝试读取 `git config user.name`。',
       '  --git-email    未传时，尝试读取 `git config user.email`。',
       '  --pr-url       未传时，保留为空。',
@@ -198,11 +198,14 @@ function buildConfig(mode, options) {
   const gitName = options['git-name'] || run('git', ['config', 'user.name']) || config.git?.name || '';
   const gitEmail = options['git-email'] || run('git', ['config', 'user.email']) || config.git?.email || '';
   const loginProbe = mode === 'multica'
-    ? (options['github-user'] || run('gh', ['api', 'user', '--jq', '.login']) || config.tracker?.github?.username || '')
+    ? (options['github-user'] || '')
     : '';
 
   if (mode === 'multica' && !repo) {
     throw new Error('multica 模式必须提供 --repo，或当前仓库 remote 可解析出 GitHub repo');
+  }
+  if (mode === 'multica' && !loginProbe) {
+    throw new Error('multica 模式必须显式提供 --github-user');
   }
 
   const validation = repo ? validateGitHub(repo, loginProbe) : { verified: false, reason: '未提供 repo', login: loginProbe };

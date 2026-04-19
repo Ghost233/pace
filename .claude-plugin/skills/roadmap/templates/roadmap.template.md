@@ -13,7 +13,7 @@
 
 ### Phase 01: <title>
 - Type: tech | requirement
-- Owner Skill: <pace:map-codebase | n/a>
+- Owner Skill: <pace:map-codebase | pace:... | n/a>
 - Expected Outputs:
   - <tech phase 必须列出文件或目录路径；requirement phase 写 n/a>
 - Goal: <phase 完成后的结果>

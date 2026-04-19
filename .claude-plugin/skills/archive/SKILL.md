@@ -20,6 +20,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - 归档位置为 `.pace/archive/`
 - 保留活跃项目级文件
 - 先读取 `.pace/roadmap.md`，确认当前 phase 的 `Type`
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue / 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 archive
 
 ## 必需产物
 
@@ -36,8 +37,8 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
   - `.pace/phases/<phase>/runs/`
   - `.pace/phases/<phase>/verification.md`
 - `tech` phase 必须归档：
-  - roadmap 中 `Expected Outputs` 列出的产物
   - `.pace/phases/<phase>/verification.md`
+  - 一份 `Expected Outputs` 结果清单或引用记录，列出真实交付路径、存在性检查结果与对应证据
 
 ## 索引字段
 
@@ -54,6 +55,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - 不要静默删除历史
 - 不要把 archive 变成第二个 bootstrap
 - `verification.md` 的 `Final Status` 不等于 `pass` 时禁止归档
+- `tech` phase 的归档不能移动或覆盖工作树中的 live outputs；archive 只记录它们的路径、校验结果与验证证据
 
 ## 后续路由
 

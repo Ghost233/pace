@@ -189,6 +189,7 @@ gh auth switch -u <tracker.github.username>
 - 用 comment 追加审计记录
 - 默认限制 body 小于 `60000` 字符
 - 可创建文档 issue，并可挂到父 issue 下
+- 交接模板必须列出当前文档集合；若正文滚动到新文档 issue，也必须把滚动链写进模板字段
 
 ## 角色设计
 

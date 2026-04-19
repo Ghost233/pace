@@ -22,6 +22,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - 若存在，读取 `.pace/phases/<phase>/coverage.md`
 - 读取 `.pace/roadmap.md` 与 `.pace/state.md`
 - 将验证结果写入 phase 目录，并同步 state
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue / 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 verify
 
 ## 必需产物
 
