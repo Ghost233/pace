@@ -20,6 +20,8 @@
   - `run-summary:<file>`: <issue 链接 @ rev-N>
   - `coverage`: <issue 链接 @ rev-N>
   - <继续列出全部 run-summary 文档>
+- 最新正文节点：
+  - <文档类型 -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：

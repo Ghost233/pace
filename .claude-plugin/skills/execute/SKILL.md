@@ -182,7 +182,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 
 ### 单 phase 边界
 
-execute 只负责执行当前 phase 的 plans。每个 phase 必须经过 discuss → plan → execute 的完整流程，不能跳过 discuss 和 plan 直接进入下一个 phase 的 execute。
+execute 只负责执行当前 `requirement` phase 的 plans。`tech` phase 不进入 `execute`，必须改走 roadmap 中声明的 `Owner Skill -> verify -> archive`。因此 requirement phase 才必须经过 `discuss -> plan -> execute` 的完整流程。
 
 ### 执行汇报
 

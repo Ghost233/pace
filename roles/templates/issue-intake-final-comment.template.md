@@ -22,6 +22,8 @@
   - `requirement-entry:<REQ-id>`: <issue 链接 @ rev-N | 无>
   - `roadmap-entry:<phase-id>`: <issue 链接 @ rev-N | 无>
   - <继续列出同类文档，不能省略多份文档>
+- 最新正文节点：
+  - <文档类型 -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：

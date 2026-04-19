@@ -11,11 +11,15 @@
   - `verification.md`
 - 已归档产物：
   - <归档路径 / 包含的产物>
-- 文档更新：
-  - 文档 Issue：<issue 链接>
-  - 文档类型：archive-entry
-  - 正文修订：<rev-N>
-  - 审计 Comment：<comment 链接>
+- 文档集合：
+  - `archive-entry`: <issue 链接 @ rev-N>
+  - <继续列出相关归档文档；没有则写 无>
+- 最新正文节点：
+  - <文档类型 -> issue 链接 @ rev-N (latest)>
+- 文档滚动链：
+  - <没有则写 无>
+- 审计 Comment：
+  - <comment 链接列表；没有则写 无>
 - 当前结论：<为什么归档完成，或为什么重新打开>
 - 下一角色：<无 | PACE-阶段经理 | PACE-交付经理>
 - 下一技能：<无 | pace:plan | pace:execute>

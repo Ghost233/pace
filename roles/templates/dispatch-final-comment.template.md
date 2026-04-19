@@ -9,8 +9,9 @@
   - <追踪块 / 最新阶段 comment / 文档 issue body / verification.md / 状态冲突>
 - 当前结论：<为什么判定为这个下一角色，或为什么不能判定>
 - 下一去向：<PACE-初始化经理 | PACE-需求接管经理 | PACE-阶段经理 | PACE-交付经理 | PACE-验收归档经理 | Owner Skill:<skill> | 无>
+- 下一 Owner Skill：<skill | 无>
 - 下一角色：<PACE-初始化经理 | PACE-需求接管经理 | PACE-阶段经理 | PACE-交付经理 | PACE-验收归档经理 | 无>
-- 下一技能：<pace:... | 无>
+- 下一技能：<pace:... | Owner Skill:<skill> | 无>
 - 下一阶段必需输入：
   - <下一角色进入前必须具备的证据或产物>
 - 缺失项 / 冲突项：

@@ -20,6 +20,8 @@
   - `coverage`: <issue 链接 @ rev-N>
   - `plan-file:<file>`: <issue 链接 @ rev-N>
   - <继续列出全部 plan-file / requirement-entry / roadmap-entry 文档>
+- 最新正文节点：
+  - <文档类型 -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：

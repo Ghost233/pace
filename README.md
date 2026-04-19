@@ -94,23 +94,23 @@ gh auth switch -u <tracker.github.username>
 ## 快速开始
 
 ```bash
-# 1. 初始化当前会话
+# 本地 / skills-only
 node "$HOME/.codex/skills/pace/bin/pace-init.js" local
-# 或
-node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+/pace:bootstrap
+/pace:status
 
-# 2. 受限 git 操作（推荐）
+# multica + roles
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+# 然后进入 PACE-初始化经理
+
+# 受限 git 操作（推荐）
 node "$HOME/.codex/skills/pace/bin/pace-git.js" status
 node "$HOME/.codex/skills/pace/bin/pace-git.js" info
 
-# 3. 受限 GitHub 操作（推荐）
+# 受限 GitHub 操作（推荐）
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72
 node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md
-
-# 4. 开始使用
-/pace:bootstrap → 创建新项目的 .pace/ 工作区
-/pace:status    → 查看当前进度和下一步默认 skill
 ```
 
 ## 工作流

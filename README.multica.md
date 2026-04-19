@@ -190,6 +190,7 @@ gh auth switch -u <tracker.github.username>
 - 默认限制 body 小于 `60000` 字符
 - 可创建文档 issue，并可挂到父 issue 下
 - 交接模板必须列出当前文档集合；若正文滚动到新文档 issue，也必须把滚动链写进模板字段
+- 从这里开始，正式协议只有这一套：主 issue comment + 文档 issue body/comment；不要再把“全文镜像日志 comment”当成另一套并行协议
 
 ## 角色设计
 
@@ -527,17 +528,17 @@ multica 模式下，本轮执行先读：
 3. GitHub 文档 issue 的最新版 body 与审计 comment
 4. `.pace/` 阶段产物
 
-其中：
+唯一判定规则：
 
-- `.pace/session.yaml` 负责提供本轮 config + context
-- 主 issue comment 负责保存跨轮次阶段状态、handoff 与关闭结论
-- 文档 issue body 负责保存最新版稳定正文
-- 文档 issue comment 负责保存正文更新审计记录
-- `.pace/` 负责保存本轮工作区缓存副本
-- 若 GitHub 与 `.pace/` 冲突，默认以 GitHub 为准
-- 若主 issue comment 与文档 issue body 冲突：
-  - 阶段状态 / handoff / closeout 以主 issue comment 为准
-  - 正文内容以文档 issue body 为准
+- `.pace/session.yaml` 只负责本轮 config + context
+- 主 issue comment 只负责阶段状态、handoff、closeout
+- 文档 issue body 只负责最新版稳定正文
+- 文档 issue comment 只负责正文更新审计
+- `.pace/` 只负责本轮工作区缓存副本
+- 任何跨轮次冲突都按这条优先级处理：
+  - 阶段状态 / handoff / closeout：主 issue comment 优先
+  - 正文内容：文档 issue body 优先
+  - 本地 `.pace/` 永远不能覆盖 GitHub 文档层
 
 如果 `.pace/session.yaml` 缺失，roles 必须停止并要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica`。
 
@@ -554,6 +555,7 @@ multica 模式下，本轮执行先读：
 5. 单个文档 issue 的 body 默认限制 `60000` 字符
 6. 超过限制时，必须创建新的文档 issue，更新主 issue 或交接 comment 中的索引
 7. 最终 handoff comment 只能引用这些文档 issue / 审计 comment，不能替代正文
+8. 上面这组规则就是唯一正式协议；主 issue comment 与文档 issue body/comment 之外，不再定义第二套并行持久化协议
 
 ## 一条完整示例
 
