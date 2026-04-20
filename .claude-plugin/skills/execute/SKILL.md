@@ -25,7 +25,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 更新 `.pace/state.md`
 - 将 run summaries 写入 `.pace/phases/<phase>/runs/`
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
 - 默认按 wave 并行执行，以下情况串行：
   - 两个 plan 修改同一文件
   - 两个 plan 有显式 Depends On 关系
@@ -56,6 +56,8 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 每个已执行 plan 对应一份 run summary
 - 更新后的 coverage.md
 - 更新后的 state.md
+- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：execution-log / run summary / coverage 的文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 ## 执行流程
 
@@ -128,9 +130,19 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 如有缺失项，禁止声明完成，必须报告缺失项及原因
 - 全部 `done` 后才可更新 state.md
 
+### 7. GitHub 文档层同步（仅 `multica + github`）
+
+- 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+- 再分别执行 `upsert-doc` 同步：
+  - `execution-log`
+  - 每份 `run-summary:<file>`
+  - `coverage`
+- 每次 `upsert-doc` 如有执行摘要、重试说明或验证结果，配套写审计 comment
+- 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 execute 完成
+
 ## Execution Log 标准
 
-`execution-log.md` 是主代理的外部记忆。即使上下文被压缩，主代理通过读取此文件恢复完整执行状态。
+`execution-log.md` 是当前工作区中的执行缓存与短期外部记忆，不是 `multica + github` 下的跨轮次真相源。跨轮次重入时，仍必须先从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复，再把它重新水合到本地工作区。
 
 文件结构：
 
@@ -158,11 +170,11 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 
 ## 持续推进机制
 
-主代理不写代码，上下文消耗很低，因此可以在单次 session 中执行大量 plan。以下规则确保持续推进：
+主代理不写代码，上下文消耗很低，因此可以在单次 session 中执行大量 plan。以下规则只定义“当前工作区内如何持续推进”，不替代 `multica + github` 的跨轮次恢复协议：
 
 ### 上下文恢复
 
-当主代理完成一个 wave 的所有子代理后，如果要继续下一个 wave：
+当主代理在同一工作区、同一连续执行中完成一个 wave 的所有子代理后，如果要继续下一个 wave：
 
 1. 将当前执行进度写入 execution-log.md（已经做了）
 2. 将 coverage.md 写入磁盘（已经做了）

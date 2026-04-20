@@ -20,13 +20,15 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 - 若存在 `.pace/codebase/`，一并读取
 - phase 级产物写入 `.pace/phases/<phase>/`
 - 讨论聚焦在边界、风险、参考和拒绝项，不展开实现细节
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 discuss
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 discuss
 
 ## 必需产物
 
 - `.pace/phases/<phase>/context.md`
 - `.pace/phases/<phase>/discussion-log.md`
 - `.pace/phases/<phase>/coverage.md`
+- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -74,7 +76,12 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 11. 写 `context.md`
 12. 写 `discussion-log.md`
 13. 从 Locked Decisions 和讨论结果中提取编号化交付物，写 `coverage.md`
-14. 将讨论摘要和最终决策结果**打印到对话中**，供用户复查
+14. 若当前是 `multica + github`，必须立即执行文档层同步：
+   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+   - 再分别执行 `upsert-doc` 同步 `context`、`discussion-log`、`coverage` 到对应文档子 issue body
+   - 每次 `upsert-doc` 如有摘要或变更说明，配套写审计 comment
+   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 discuss 完成
+15. 将讨论摘要和最终决策结果**打印到对话中**，供用户复查
 
 ## 输出要求（硬性）
 

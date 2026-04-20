@@ -109,6 +109,8 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" local
 /pace:status
 
 # multica + roles
+multica repo checkout <repo-url>
+# 再进入 checkout 后的仓库根目录
 node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
   --repo <owner/repo> \
   --branch <branch> \

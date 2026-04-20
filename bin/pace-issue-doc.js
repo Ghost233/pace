@@ -32,7 +32,7 @@ function usage(exitCode = 0) {
     '  - ensure-root 会创建或更新主文档 root issue，并同步初始化参数子文档 issue',
     '  - resolve-init 会从主 issue 的受控索引 comment / root issue / init-params issue 解析初始化参数',
     '  - upsert-doc 会创建或更新某个文档子 issue，并把链接/修订同步回 root issue 与主 issue comment',
-    '  - 在 multica + github 下，不要直接使用低层 create-doc / update-body 改正文，避免绕过索引回填',
+    '  - 在 multica + github 下，低层 create-doc / update-body 已被禁用，避免绕过索引回填',
     '',
     '示例:',
     '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue 54',
@@ -236,29 +236,33 @@ function linkSubIssue(repo, parentNumber, childId) {
   );
 }
 
-function parseRootState(body) {
+function emptyRootState() {
+  return {
+    main_issue: {},
+    doc_root: {},
+    init_params: {},
+    docs: {},
+    chains: {},
+    updated_at: '',
+  };
+}
+
+function parseRootState(body, options = {}) {
+  const strict = Boolean(options.strict);
   const match = body.match(/## PACE 文档索引\(JSON\)\n```json\n([\s\S]*?)\n```/);
   if (!match) {
-    return {
-      main_issue: {},
-      doc_root: {},
-      init_params: {},
-      docs: {},
-      chains: {},
-      updated_at: '',
-    };
+    if (strict) {
+      throw new Error('文档 root issue 缺少 `PACE 文档索引(JSON)`；请先修复该 issue 正文');
+    }
+    return null;
   }
   try {
     return JSON.parse(match[1]);
   } catch {
-    return {
-      main_issue: {},
-      doc_root: {},
-      init_params: {},
-      docs: {},
-      chains: {},
-      updated_at: '',
-    };
+    if (strict) {
+      throw new Error('文档 root issue 中的 `PACE 文档索引(JSON)` 已损坏；请先修复该 issue 正文');
+    }
+    return null;
   }
 }
 
@@ -273,6 +277,31 @@ function fetchIssueComments(repo, number) {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
   );
+}
+
+function fetchSubIssues(repo, number) {
+  const output = run(
+    'gh',
+    ['api', issueApiPath(repo, `/issues/${number}/sub_issues`)],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+  const parsed = JSON.parse(output);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.sub_issues)) return parsed.sub_issues;
+  return [];
+}
+
+function ensureSubIssueLink(repo, parentNumber, childIssueInfo) {
+  const current = fetchSubIssues(repo, parentNumber);
+  const alreadyLinked = current.some((item) => {
+    const itemId = item?.id != null ? String(item.id) : '';
+    const childId = childIssueInfo?.id != null ? String(childIssueInfo.id) : '';
+    const itemNumber = item?.number != null ? Number(item.number) : null;
+    return (childId && itemId === childId) || (itemNumber != null && itemNumber === childIssueInfo.number);
+  });
+  if (!alreadyLinked) {
+    linkSubIssue(repo, parentNumber, childIssueInfo.id);
+  }
 }
 
 function findMainIssueIndexComment(repo, number) {
@@ -357,6 +386,7 @@ function formatInitArgs(initParams) {
   return [
     '--repo', initParams.tracker_github_repo || '',
     '--branch', initParams.git_branch || '',
+    '--base-branch', initParams.git_base_branch || '',
     '--github-user', initParams.tracker_github_username || '',
     '--git-name', initParams.git_name || '',
     '--git-email', initParams.git_email || '',
@@ -376,6 +406,8 @@ function formatInitCommand(initParams) {
     shellQuote(initParams.tracker_github_repo),
     '--branch',
     shellQuote(initParams.git_branch),
+    '--base-branch',
+    shellQuote(initParams.git_base_branch),
     '--github-user',
     shellQuote(initParams.tracker_github_username),
     '--git-name',
@@ -527,16 +559,19 @@ function upsertIndexedDoc(context, rootIssue, state, options) {
   };
 
   let targetIssue;
+  let targetIssueInfo;
   if (entry.latest_issue_url) {
     targetIssue = parseIssueRef(entry.latest_issue_url, context.repo);
     ensureSameRepo(targetIssue.repo, context.repo);
+    targetIssueInfo = fetchIssueId(targetIssue);
     writeIssueBody(targetIssue, options.body);
   } else {
     const created = createIssue(context.repo, options.title, options.body);
-    const createdInfo = fetchIssueId(created);
-    linkSubIssue(context.repo, rootIssue.number, createdInfo.id);
+    targetIssueInfo = fetchIssueId(created);
+    ensureSubIssueLink(context.repo, rootIssue.number, targetIssueInfo);
     targetIssue = created;
   }
+  ensureSubIssueLink(context.repo, rootIssue.number, targetIssueInfo);
 
   if (options.auditBody) {
     const temp = writeTempBody(options.auditBody);
@@ -577,8 +612,12 @@ function ensureRootIssue(context, options) {
   ensureSameRepo(mainIssue.repo, context.repo);
   const mainIssueInfo = fetchIssueId(mainIssue);
   const sessionIssueNumber = context.session?.data?.context?.issue?.number || null;
+  const sessionIssueUrl = context.session?.data?.context?.issue?.url || '';
   if (sessionIssueNumber && sessionIssueNumber !== mainIssue.number) {
     throw new Error('当前 .pace/session.yaml 绑定的 issue 与目标主 issue 不一致；请先用正确参数重跑 pace-init.js');
+  }
+  if (sessionIssueUrl && sessionIssueUrl !== mainIssue.url) {
+    throw new Error('当前 .pace/session.yaml 绑定的 issue URL 与目标主 issue 不一致；请先用正确参数重跑 pace-init.js');
   }
   const rootTitle = options.title || `issue-${mainIssue.number}-doc`;
   const indexComment = findMainIssueIndexComment(context.repo, mainIssue.number);
@@ -589,11 +628,18 @@ function ensureRootIssue(context, options) {
   if (indexInfo?.rootIssueUrl) {
     rootIssue = parseIssueRef(indexInfo.rootIssueUrl, context.repo);
   } else {
-    const existing = existingCandidates.find((item) => {
+    let existing = null;
+    for (const item of existingCandidates) {
       const info = fetchIssueId({ repo: context.repo, number: item.number, url: item.url });
-      const parsed = parseRootState(info.body || '');
-      return parsed?.main_issue?.url === mainIssue.url;
-    });
+      const parsed = parseRootState(info.body || '', { strict: false });
+      if (!parsed) {
+        throw new Error(`发现同名文档 root issue 但其索引 JSON 已损坏: ${item.url}；请先修复该 issue，再重试 ensure-root`);
+      }
+      if (parsed?.main_issue?.url === mainIssue.url) {
+        existing = item;
+        break;
+      }
+    }
     if (existing) {
       rootIssue = { repo: context.repo, number: existing.number, url: existing.url };
     } else {
@@ -618,7 +664,11 @@ function ensureRootIssue(context, options) {
   }
 
   const rootInfo = fetchIssueId(rootIssue);
-  const state = parseRootState(rootInfo.body || '');
+  ensureSubIssueLink(context.repo, mainIssue.number, rootInfo);
+  const state = parseRootState(rootInfo.body || '', { strict: true });
+  if (state.main_issue?.url && state.main_issue.url !== mainIssue.url) {
+    throw new Error('文档 root issue 绑定的主 issue 与当前主 issue 不一致；请先修复文档索引');
+  }
   state.main_issue = { number: mainIssue.number, url: mainIssue.url };
   state.doc_root = { title: rootTitle, number: rootInfo.number, url: rootInfo.url };
   state.init_params = buildInitParams(context, {
@@ -630,6 +680,13 @@ function ensureRootIssue(context, options) {
   });
   state.docs = state.docs || {};
   state.chains = state.chains || {};
+  for (const entry of Object.values(state.docs)) {
+    if (!entry?.latest_issue_url) continue;
+    const docIssue = parseIssueRef(entry.latest_issue_url, context.repo);
+    ensureSameRepo(docIssue.repo, context.repo);
+    const docIssueInfo = fetchIssueId(docIssue);
+    ensureSubIssueLink(context.repo, rootInfo.number, docIssueInfo);
+  }
   upsertIndexedDoc(context, { repo: context.repo, number: rootInfo.number, url: rootInfo.url }, state, {
     docKey: 'init-params',
     title: `issue-${mainIssue.number}-init-params`,
@@ -707,7 +764,14 @@ function commandResolveInit(context, options) {
   ensureSameRepo(initIssue.repo, mainIssue.repo);
   const rootInfo = fetchIssueId(rootIssue);
   const initInfo = fetchIssueId(initIssue);
-  const rootState = parseRootState(rootInfo.body || '');
+  const rootState = parseRootState(rootInfo.body || '', { strict: true });
+  if (rootState.main_issue?.url && rootState.main_issue.url !== mainIssue.url) {
+    throw new Error('文档 root issue 绑定的主 issue 与当前主 issue 不一致');
+  }
+  const expectedInitIssueUrl = rootState.docs?.['init-params']?.latest_issue_url || '';
+  if (expectedInitIssueUrl && expectedInitIssueUrl !== initIssue.url) {
+    throw new Error('主 issue 索引 comment 指向的初始化参数 issue 与文档 root issue 当前索引不一致');
+  }
   const initParams = parseInitParamsBody(initInfo.body || '');
   const payload = {
     main_issue: { number: mainIssue.number, url: mainIssue.url },

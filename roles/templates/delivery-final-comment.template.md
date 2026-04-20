@@ -32,6 +32,10 @@
 - 审计 Comment：
   - <comment 链接列表；没有则写 无>
 - 当前结论：<为什么已可进入验证>
+- 终态：<handoff | needs_user_input | closed>
+- handoff：<PACE-验收归档经理 | PACE-阶段经理 | PACE-交付经理 | Owner Skill:<skill> | 无>
+- needs_user_input：<true | false>
+- closed：<true | false>
 - 下一角色：<PACE-验收归档经理 | PACE-阶段经理 | PACE-交付经理 | 无>
 - 下一技能：<pace:verify | pace:plan | pace:discuss | pace:execute | Owner Skill:<skill> | 无>
 - 恢复角色：<PACE-交付经理 | PACE-阶段经理 | 无>

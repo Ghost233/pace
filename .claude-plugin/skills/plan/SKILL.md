@@ -28,6 +28,8 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 
 - `.pace/phases/<phase>/plans/` 下的一份或多份计划文件
 - checker 的修订结果，直接回写到 plans 或单独写一个简短 review note
+- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：plan 文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -47,7 +49,12 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
    - checker 返回 verdict：pass | revise | split
 5. 若 verdict = revise，根据 Required Revisions 同时修订 plans 和 coverage.md，然后重新提交 checker
 6. 若 verdict = split，停止当前 plan 编写并路由 `pace:roadmap`
-7. 若 verdict = pass，结束并路由 `pace:execute`
+7. 若 verdict = pass，且当前是 `multica + github`，必须立即执行文档层同步：
+   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+   - 再分别执行 `upsert-doc` 同步 `coverage`、每份 `plan-file`、必要时的 checker review note 到对应文档子 issue body
+   - 每次 `upsert-doc` 如有修订摘要，配套写审计 comment
+   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 plan 完成
+8. 若 verdict = pass，结束并路由 `pace:execute`
 
 ## 通过条件
 

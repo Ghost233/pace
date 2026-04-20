@@ -34,6 +34,10 @@
 - Checker 结果：
   - <通过(pass)>
 - 当前结论：<为什么已可进入执行>
+- 终态：<handoff | needs_user_input | closed>
+- handoff：<PACE-交付经理 | PACE-阶段经理 | Owner Skill:<skill> | 无>
+- needs_user_input：<true | false>
+- closed：<true | false>
 - 下一角色：<PACE-交付经理 | PACE-阶段经理 | 无>
 - 下一技能：<pace:execute | pace:discuss | pace:plan | Owner Skill:<skill> | 无>
 - 恢复角色：<PACE-阶段经理 | 无>

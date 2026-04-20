@@ -26,6 +26,10 @@
 - 审计 Comment：
   - <comment 链接列表；没有则写 无>
 - 当前结论：<为什么归档完成，或为什么重新打开>
+- 终态：<handoff | needs_user_input | closed>
+- handoff：<PACE-阶段经理 | PACE-交付经理 | 无>
+- needs_user_input：<true | false>
+- closed：<true | false>
 - 下一角色：<无 | PACE-阶段经理 | PACE-交付经理>
 - 下一技能：<无 | pace:plan | pace:execute>
 - 下一阶段必需输入：

@@ -22,12 +22,14 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - 若存在，读取 `.pace/phases/<phase>/coverage.md`
 - 读取 `.pace/roadmap.md` 与 `.pace/state.md`
 - 将验证结果写入 phase 目录，并同步 state
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 verify
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 verify
 
 ## 必需产物
 
 - `.pace/phases/<phase>/verification.md`
 - 更新后的 `.pace/state.md`
+- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：verification 文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -60,7 +62,12 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 8. 如果当前 phase `Type = tech`，还必须核查：
    - `Expected Outputs` 中列出的路径全部存在
    - `Done Criteria` 中每一条都能在证据中找到对应结论
-9. 输出通过、失败或部分通过结论
+9. 若当前是 `multica + github`，必须立即执行文档层同步：
+   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+   - 再执行 `upsert-doc` 同步 `verification` 到对应文档子 issue body
+   - 如有验证摘要、阻塞缺口或结论变化，配套写审计 comment
+   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 verify 完成
+10. 输出通过、失败或部分通过结论
 
 ## 验证手段
 

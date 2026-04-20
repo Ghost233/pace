@@ -35,6 +35,43 @@
 
 ## 前置准备
 
+### 0. 执行器前置阶段
+
+在进入任何 PACE role 之前，执行器必须先完成：
+
+1. 从 multica issue 或其关联描述中解析目标 GitHub issue URL
+2. 从 GitHub issue URL 解析目标仓库
+3. 执行 `multica repo checkout <repo-url>`，把目标仓库 checkout 到当前工作目录
+4. 切换到目标仓库根目录
+5. 切换到本轮目标分支；若当前主 issue 已有初始化参数子 issue，则以其中声明的 `git.branch` 为准；若是首次进入，则以当前显式提供给 `pace-init.js` 的 `--branch` 为准
+
+只有以上五步都完成后，才允许开始任何角色的“首步动作”。
+
+硬规则：
+
+- 如果当前 cwd 还是空目录，或还不是目标仓库根目录，不能进入 `PACE-初始化经理`、`PACE-需求接管经理` 或其他任何角色正文
+- 如果当前仓库分支与初始化参数声明的目标分支不一致，不能进入任何角色正文；执行器应先切到目标分支，再重新进入当前角色
+- 这类情况属于“执行器前置阶段未完成”，不是角色内失败
+- 角色之间的 handoff 只发生在“已经进入目标仓库”之后
+
+执行器在空目录里最多只能做：
+
+- 读取 multica issue
+- 解析 GitHub issue URL
+- 执行 `multica repo checkout <repo-url>`
+
+不能在空目录里提前做：
+
+- `.pace/` 是否存在的判断
+- `.pace/session.yaml` 是否缺失后的角色路由
+- `PACE-初始化经理` / `PACE-需求接管经理` / `PACE-阶段经理` 的正式进入
+
+推荐最小前置命令：
+
+```bash
+multica repo checkout <repo-url>
+cd <checkout 后的仓库根目录>
+```
 ### 1. 初始化 multica 会话
 
 在项目仓库根目录执行：
@@ -227,6 +264,7 @@ gh auth switch -u <tracker.github.username>
 - 除 `PACE-需求接管经理` 的首次接管外，其余角色在本轮开始前都应先通过 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue <main-issue>` 读取主 issue 对应的初始化参数，再调用 `pace-init.js`
 - `resolve-init` 默认直接输出一条可执行的 `pace-init.js multica ...` 命令；如需机器消费，可改用 `--format args` 或 `--format json`
 - 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数子 issue
+- 首次进入时，“当前已知参数”只允许来自：multica issue / GitHub issue 中已经明确给出的初始化参数、外部编排器显式传入的参数、以及当前轮用户补充；禁止从本地 git/gh 状态猜测补齐
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - `PACE-初始化经理` 只处理会话与工作区前置准备，不接管 requirement 内容
 - 其余角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`

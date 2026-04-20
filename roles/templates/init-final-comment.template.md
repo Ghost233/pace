@@ -22,6 +22,10 @@
 - 已执行技能：
   - <pace:bootstrap | pace:map-codebase | 无>
 - 当前结论：<为什么已可进入后续角色，或为什么仍然不能继续>
+- 终态：<handoff | needs_user_input | closed>
+- handoff：<PACE-需求接管经理 | PACE-调度经理 | Owner Skill:<skill> | 无>
+- needs_user_input：<true | false>
+- closed：<true | false>
 - 下一去向：<PACE-需求接管经理 | PACE-调度经理 | Owner Skill:<skill> | 无>
 - 下一 Owner Skill：<skill | 无>
 - 下一角色：<PACE-需求接管经理 | PACE-调度经理 | 无>
