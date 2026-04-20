@@ -265,6 +265,8 @@ gh auth switch -u <tracker.github.username>
 - `resolve-init` 默认直接输出一条可执行的 `pace-init.js multica ...` 命令；如需机器消费，可改用 `--format args` 或 `--format json`
 - 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数子 issue
 - 首次进入时，“当前已知参数”只允许来自：multica issue / GitHub issue 中已经明确给出的初始化参数、外部编排器显式传入的参数、以及当前轮用户补充；禁止从本地 git/gh 状态猜测补齐
+- 本地 `gh auth status`、`gh api user`、`git config` 只允许校验当前机器状态，不允许拿来补齐缺失的 `pace-init.js` 参数
+- `pace-init.js` 成功后，如果当前唯一阻塞是 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md` 缺失，则必须直接 `handoff: PACE-初始化经理`；不要再输出 `needs_user_input`
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - `PACE-初始化经理` 只处理会话与工作区前置准备，不接管 requirement 内容
 - 其余角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
