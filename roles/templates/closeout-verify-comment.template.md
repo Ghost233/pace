@@ -6,6 +6,11 @@
 - 角色：PACE-验收归档经理
 - 阶段：<阶段编号>
 - 主 Issue：<issue 链接>
+- 文档 Root Issue：<issue 链接 | 无>
+- 初始化参数 Issue：<issue 链接 | 无>
+- 主 Issue 文档索引 Comment：<comment 链接 | 无>
+- 执行仓库：<owner/repo | 无>
+- 执行分支：<branch | 无>
 - 最终状态：<通过(pass) | 部分通过(partial) | 失败(fail)>
 - 阻塞缺口数：<0 | N>
 - 目标检查：

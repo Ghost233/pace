@@ -10,7 +10,7 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
 - multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local` 或 `pace:config`
+- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
 如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 

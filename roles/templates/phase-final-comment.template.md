@@ -6,6 +6,11 @@
 - 角色：PACE-阶段经理
 - 阶段：<阶段编号>
 - 主 Issue：<issue 链接>
+- 文档 Root Issue：<issue 链接 | 无>
+- 初始化参数 Issue：<issue 链接 | 无>
+- 主 Issue 文档索引 Comment：<comment 链接 | 无>
+- 执行仓库：<owner/repo | 无>
+- 执行分支：<branch | 无>
 - 结果类型：<可进入执行 | 需要补充 | 回退阶段>
 - 覆盖的需求：
   - <REQ-001, REQ-002>

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { loadSession } = require('./lib/pace-config');
 const { ensureGithubSession, run } = require('./lib/github-cli');
@@ -13,24 +14,32 @@ function usage(exitCode = 0) {
     '',
     '作用:',
     '  管理 PACE 的 issue 文档层。',
-    '  用 issue body 保存最新版文档，用 comment 保存审计记录。',
+    '  在 multica + github 模式下，维护：业务主 issue -> 文档 root issue -> 文档子 issue。',
+    '  用文档 root issue 维护索引，用子 issue body 保存最新版正文，用 comment 保存审计记录。',
+    '  创建或更新文档后，会自动把 root issue 与子文档索引回填到主 issue comment。',
     '  默认限制 body 长度不超过 60000 字符。',
     '',
     '允许的命令:',
+    '  ensure-root --issue <url|number> [--title <title>]',
+    '  resolve-init --issue <url|number> [--format <command|args|json>]',
+    '  upsert-doc --issue <url|number> --doc-key <key> --title <title> [--body-file <path>] [--audit-file <path>] [--max-chars <n>]',
     '  check-body --body-file <path> [--max-chars <n>]',
-    '  update-body --issue <url|number> --body-file <path> [--max-chars <n>]',
-    '  create-doc --title <title> --body-file <path> [--parent <url|number>] [--max-chars <n>]',
     '  append-audit --issue <url|number> --body-file <path>',
     '',
     '说明:',
-    '  - 只操作当前 session 配置的 GitHub 仓库',
+    '  - 除 resolve-init 外，其余命令只操作当前 session 配置的 GitHub 仓库',
     '  - body 超过上限直接拒绝，不自动截断',
-    '  - create-doc 可选把新 issue 挂到父 issue 下',
+    '  - ensure-root 会创建或更新主文档 root issue，并同步初始化参数子文档 issue',
+    '  - resolve-init 会从主 issue 的受控索引 comment / root issue / init-params issue 解析初始化参数',
+    '  - upsert-doc 会创建或更新某个文档子 issue，并把链接/修订同步回 root issue 与主 issue comment',
+    '  - 在 multica + github 下，不要直接使用低层 create-doc / update-body 改正文，避免绕过索引回填',
     '',
     '示例:',
+    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue 54',
+    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue 54',
+    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue https://github.com/owner/repo/issues/54 --format args',
+    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" upsert-doc --issue 54 --doc-key tracking-block --title "issue-54-tracking-block" --body-file /tmp/tracking.md',
     '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md',
-    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --body-file /tmp/doc.md',
-    '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" create-doc --title "phase-01-context" --body-file /tmp/doc.md --parent 72',
     '  node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" append-audit --issue 72 --body-file /tmp/audit.md',
   ].join('\n');
   console.error(text);
@@ -125,20 +134,518 @@ function ensureBodyWithinLimit(body, maxChars) {
 }
 
 function loadGithubContext() {
-  const session = loadSession(process.cwd());
+  let session = null;
+  try {
+    session = loadSession(process.cwd());
+  } catch {
+    session = null;
+  }
   return {
     session,
     repo: session?.data?.config?.tracker?.github?.repo || '',
+    trackerType: session?.data?.config?.tracker?.type || '',
+    executor: session?.data?.config?.executor || '',
   };
 }
 
+function ensureRootMode(context) {
+  if (!context.repo) {
+    throw new Error('当前 session 未配置 GitHub repo');
+  }
+  if (context.trackerType !== 'github' || context.executor !== 'multica') {
+    throw new Error('该命令只适用于 tracker.type=github 且 executor=multica');
+  }
+}
+
 function fetchIssueId(issue) {
-  const output = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'id,url,number']);
-  const parsed = JSON.parse(output);
+  const output = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'id,url,number,title,body,labels']);
+  return JSON.parse(output);
+}
+
+function ensureGithubRepoAccess(repo) {
+  const ghPath = run('which', ['gh']);
+  if (!ghPath) {
+    throw new Error('gh 未安装');
+  }
+  const login = run('gh', ['api', 'user', '--jq', '.login']);
+  if (!login) {
+    throw new Error('gh 未登录');
+  }
+  const view = run('gh', ['repo', 'view', repo, '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
+  if (!view || view !== repo) {
+    throw new Error(`当前 gh 用户无法访问目标仓库: ${repo}`);
+  }
+}
+
+function listIssuesByTitle(repo, title) {
+  const output = run('gh', ['issue', 'list', '--repo', repo, '--state', 'all', '--search', `${title} in:title`, '--limit', '100', '--json', 'number,title,url']);
+  const items = JSON.parse(output);
+  return items.filter((item) => item.title === title);
+}
+
+function writeTempBody(body) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pace-issue-doc-'));
+  const file = path.join(dir, 'body.md');
+  fs.writeFileSync(file, body, 'utf8');
+  return { dir, file };
+}
+
+function cleanupTemp(temp) {
+  if (!temp) return;
+  try {
+    fs.rmSync(temp.dir, { recursive: true, force: true });
+  } catch {
+    // ignore
+  }
+}
+
+function writeIssueBody(issue, body) {
+  const temp = writeTempBody(body);
+  try {
+    run('gh', ['issue', 'edit', String(issue.number), '--repo', issue.repo, '--body-file', temp.file], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } finally {
+    cleanupTemp(temp);
+  }
+}
+
+function createIssue(repo, title, body) {
+  const temp = writeTempBody(body);
+  try {
+    const createdUrl = run('gh', ['issue', 'create', '--repo', repo, '--title', title, '--body-file', temp.file]);
+    return parseIssueRef(createdUrl, repo);
+  } finally {
+    cleanupTemp(temp);
+  }
+}
+
+function linkSubIssue(repo, parentNumber, childId) {
+  const [owner, name] = repo.split('/');
+  run(
+    'gh',
+    [
+      'api',
+      `repos/${owner}/${name}/issues/${parentNumber}/sub_issues`,
+      '--method',
+      'POST',
+      '-f',
+      `sub_issue_id=${childId}`,
+    ],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+}
+
+function parseRootState(body) {
+  const match = body.match(/## PACE 文档索引\(JSON\)\n```json\n([\s\S]*?)\n```/);
+  if (!match) {
+    return {
+      main_issue: {},
+      doc_root: {},
+      init_params: {},
+      docs: {},
+      chains: {},
+      updated_at: '',
+    };
+  }
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return {
+      main_issue: {},
+      doc_root: {},
+      init_params: {},
+      docs: {},
+      chains: {},
+      updated_at: '',
+    };
+  }
+}
+
+function issueApiPath(repo, suffix) {
+  const [owner, name] = repo.split('/');
+  return `repos/${owner}/${name}${suffix}`;
+}
+
+function fetchIssueComments(repo, number) {
+  return JSON.parse(
+    run('gh', ['api', issueApiPath(repo, `/issues/${number}/comments`)], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  );
+}
+
+function findMainIssueIndexComment(repo, number) {
+  const comments = fetchIssueComments(repo, number);
+  if (!Array.isArray(comments)) {
+    return null;
+  }
+  return comments.find((item) => typeof item.body === 'string' && item.body.includes('<!-- PACE:DOC-INDEX -->')) || null;
+}
+
+function parseMainIssueIndexComment(body) {
+  const root = body.match(/- 文档 root issue: (https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+)/);
+  const initParams = body.match(/- 初始化参数 issue: (https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+)/);
+  const repo = body.match(/- 执行仓库: ([^\n]+)/);
+  const branch = body.match(/- 执行分支: ([^\n]+)/);
   return {
-    id: parsed.id,
-    url: parsed.url,
-    number: parsed.number,
+    rootIssueUrl: root ? root[1] : '',
+    initParamsIssueUrl: initParams ? initParams[1] : '',
+    repo: repo ? repo[1].trim() : '',
+    branch: branch ? branch[1].trim() : '',
+  };
+}
+
+function buildInitParams(context, overrides = {}) {
+  const session = context.session?.data || {};
+  const issue = overrides.issue || {};
+  return {
+    executor: session?.config?.executor || '',
+    tracker_type: session?.config?.tracker?.type || '',
+    tracker_github_repo: session?.config?.tracker?.github?.repo || '',
+    tracker_github_username: session?.config?.tracker?.github?.username || '',
+    git_branch: session?.context?.git?.branch || '',
+    git_base_branch: session?.context?.git?.base_branch || '',
+    git_name: session?.config?.git?.name || '',
+    git_email: session?.config?.git?.email || '',
+    issue_url: issue.url || session?.context?.issue?.url || '',
+    issue_title: issue.title || session?.context?.issue?.title || '',
+    issue_type: issue.type || session?.context?.issue?.type || '',
+    current_role: session?.context?.role?.current || '',
+    session_mode: session?.context?.session?.mode || '',
+  };
+}
+
+function parseInitParamsBody(body) {
+  const read = (label) => {
+    const match = body.match(new RegExp(`- ${label}: ([^\\n]*)`));
+    return match ? match[1].trim() : '';
+  };
+  return {
+    executor: read('executor'),
+    tracker_type: read('tracker.type'),
+    tracker_github_repo: read('tracker.github.repo'),
+    tracker_github_username: read('tracker.github.username'),
+    git_branch: read('git.branch'),
+    git_base_branch: read('git.base_branch'),
+    git_name: read('git.name'),
+    git_email: read('git.email'),
+    issue_url: read('issue.url'),
+    issue_title: read('issue.title'),
+    issue_type: read('issue.type'),
+    current_role: read('current_role'),
+    session_mode: read('session.mode'),
+  };
+}
+
+function shellQuote(value) {
+  const text = String(value ?? '');
+  if (text === '') return '""';
+  return `'${text.replace(/'/g, `'\"'\"'`)}'`;
+}
+
+function resolveIssueType(mainIssueInfo, fallback) {
+  if (fallback) return fallback;
+  const labels = Array.isArray(mainIssueInfo?.labels) ? mainIssueInfo.labels.map((item) => String(item.name || '').toLowerCase()) : [];
+  if (labels.includes('bug')) return 'bug';
+  if (labels.includes('feature')) return 'feature';
+  if (labels.includes('task')) return 'task';
+  return '';
+}
+
+function formatInitArgs(initParams) {
+  return [
+    '--repo', initParams.tracker_github_repo || '',
+    '--branch', initParams.git_branch || '',
+    '--github-user', initParams.tracker_github_username || '',
+    '--git-name', initParams.git_name || '',
+    '--git-email', initParams.git_email || '',
+    '--issue-url', initParams.issue_url || '',
+    '--issue-title', initParams.issue_title || '',
+    '--issue-type', initParams.issue_type || '',
+    '--current-role', initParams.current_role || '',
+  ].join('\n');
+}
+
+function formatInitCommand(initParams) {
+  return [
+    'node',
+    '"$HOME/.codex/skills/pace/bin/pace-init.js"',
+    'multica',
+    '--repo',
+    shellQuote(initParams.tracker_github_repo),
+    '--branch',
+    shellQuote(initParams.git_branch),
+    '--github-user',
+    shellQuote(initParams.tracker_github_username),
+    '--git-name',
+    shellQuote(initParams.git_name),
+    '--git-email',
+    shellQuote(initParams.git_email),
+    '--issue-url',
+    shellQuote(initParams.issue_url),
+    '--issue-title',
+    shellQuote(initParams.issue_title),
+    '--issue-type',
+    shellQuote(initParams.issue_type),
+    '--current-role',
+    shellQuote(initParams.current_role),
+  ].join(' ');
+}
+
+function renderRootBody(state) {
+  const docEntries = Object.entries(state.docs || {});
+  const docLines = docEntries.length
+    ? docEntries.map(([key, item]) => `- \`${key}\`: ${item.latest_issue_url || '无'} @ rev-${item.latest_revision || 0}`)
+    : ['- 无'];
+  const latestLines = docEntries.length
+    ? docEntries.map(([key, item]) => `- \`${key}\`: ${item.latest_issue_url || '无'} @ rev-${item.latest_revision || 0} (latest)`)
+    : ['- 无'];
+  const chainLines = Object.entries(state.chains || {}).length
+    ? Object.entries(state.chains).map(([key, list]) => `- \`${key}\`: ${Array.isArray(list) && list.length ? list.join(' -> ') : '无'}`)
+    : ['- 无'];
+  const initDoc = state.docs?.['init-params'];
+  return [
+    `# ${state.doc_root?.title || 'PACE 文档 root'}`,
+    '',
+    '## 主 Issue',
+    `- ${state.main_issue?.url || '无'}`,
+    '',
+    '## 初始化参数文档',
+    `- issue: ${initDoc?.latest_issue_url || '无'}`,
+    `- revision: rev-${initDoc?.latest_revision || 0}`,
+    '',
+    '## 子文档索引',
+    ...docLines,
+    '',
+    '## 最新正文节点',
+    ...latestLines,
+    '',
+    '## 文档滚动链',
+    ...chainLines,
+    '',
+    '## PACE 文档索引(JSON)',
+    '```json',
+    JSON.stringify(state, null, 2),
+    '```',
+    '',
+  ].join('\n');
+}
+
+function renderInitParamsBody(state) {
+  const init = state.init_params || {};
+  return [
+    `# ${state.main_issue?.number ? `issue-${state.main_issue.number}-init-params` : 'PACE 初始化参数'}`,
+    '',
+    '## 来源',
+    `- 主 issue: ${state.main_issue?.url || '无'}`,
+    `- 文档 root issue: ${state.doc_root?.url || '无'}`,
+    '',
+    '## 初始化参数',
+    `- executor: ${init.executor || ''}`,
+    `- tracker.type: ${init.tracker_type || ''}`,
+    `- tracker.github.repo: ${init.tracker_github_repo || ''}`,
+    `- tracker.github.username: ${init.tracker_github_username || ''}`,
+    `- git.branch: ${init.git_branch || ''}`,
+    `- git.base_branch: ${init.git_base_branch || ''}`,
+    `- git.name: ${init.git_name || ''}`,
+    `- git.email: ${init.git_email || ''}`,
+    `- issue.url: ${init.issue_url || ''}`,
+    `- issue.title: ${init.issue_title || ''}`,
+    `- issue.type: ${init.issue_type || ''}`,
+    `- current_role: ${init.current_role || ''}`,
+    `- session.mode: ${init.session_mode || ''}`,
+    '',
+    '## 用途',
+    '- 后续角色接手时，先读取这份初始化参数文档，再调用 `pace-init.js` 生成或覆盖 `.pace/session.yaml`。',
+    '- 如果参数缺失或脚本校验失败，必须立即停止并要求用户补齐。',
+    '',
+  ].join('\n');
+}
+
+function renderMainIssueIndexComment(state) {
+  const docs = Object.entries(state.docs || {});
+  const lines = docs.length
+    ? docs.map(([key, item]) => `- \`${key}\`: ${item.latest_issue_url || '无'} @ rev-${item.latest_revision || 0}`)
+    : ['- 无'];
+  const init = state.init_params || {};
+  return [
+    '<!-- PACE:DOC-INDEX -->',
+    '## PACE 文档索引',
+    `- 文档 root issue: ${state.doc_root?.url || '无'}`,
+    `- 初始化参数 issue: ${state.docs?.['init-params']?.latest_issue_url || '无'}`,
+    `- 执行仓库: ${init.tracker_github_repo || '无'}`,
+    `- 执行分支: ${init.git_branch || '无'}`,
+    '',
+    '### 子文档',
+    ...lines,
+    '',
+    '> 这条 comment 由 `pace-issue-doc.js` 维护；新的文档 issue 创建或滚动后会自动回填。',
+    '',
+  ].join('\n');
+}
+
+function updateRootIssue(context, rootIssue, state) {
+  state.updated_at = new Date().toISOString();
+  writeIssueBody(rootIssue, renderRootBody(state));
+}
+
+function upsertMainIssueIndexComment(context, state) {
+  const mainIssue = state.main_issue;
+  if (!mainIssue?.number || !context.repo) {
+    return;
+  }
+  const existing = fetchIssueComments(context.repo, mainIssue.number);
+  const body = renderMainIssueIndexComment(state);
+  const current = Array.isArray(existing)
+    ? existing.find((item) => typeof item.body === 'string' && item.body.includes('<!-- PACE:DOC-INDEX -->'))
+    : null;
+
+  if (current?.id) {
+    run(
+      'gh',
+      ['api', issueApiPath(context.repo, `/issues/comments/${current.id}`), '--method', 'PATCH', '-f', `body=${body}`],
+      { stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+    return;
+  }
+
+  run(
+    'gh',
+    ['api', issueApiPath(context.repo, `/issues/${mainIssue.number}/comments`), '--method', 'POST', '-f', `body=${body}`],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+}
+
+function upsertIndexedDoc(context, rootIssue, state, options) {
+  const docKey = options.docKey;
+  let entry = state.docs[docKey] || {
+    title: options.title,
+    latest_issue_url: '',
+    latest_issue_number: null,
+    latest_revision: 0,
+  };
+
+  let targetIssue;
+  if (entry.latest_issue_url) {
+    targetIssue = parseIssueRef(entry.latest_issue_url, context.repo);
+    ensureSameRepo(targetIssue.repo, context.repo);
+    writeIssueBody(targetIssue, options.body);
+  } else {
+    const created = createIssue(context.repo, options.title, options.body);
+    const createdInfo = fetchIssueId(created);
+    linkSubIssue(context.repo, rootIssue.number, createdInfo.id);
+    targetIssue = created;
+  }
+
+  if (options.auditBody) {
+    const temp = writeTempBody(options.auditBody);
+    try {
+      run('gh', ['issue', 'comment', String(targetIssue.number), '--repo', targetIssue.repo, '--body-file', temp.file], {
+        stdio: 'ignore',
+      });
+    } finally {
+      cleanupTemp(temp);
+    }
+  }
+
+  const nextRevision = Number(entry.latest_revision || 0) + 1;
+  entry = {
+    title: options.title,
+    latest_issue_url: targetIssue.url,
+    latest_issue_number: targetIssue.number,
+    latest_revision: nextRevision,
+  };
+  state.docs[docKey] = entry;
+
+  const chain = Array.isArray(state.chains[docKey]) ? state.chains[docKey] : [];
+  if (!chain.includes(targetIssue.url)) {
+    chain.push(targetIssue.url);
+  }
+  state.chains[docKey] = chain;
+
+  return {
+    issue: targetIssue,
+    revision: nextRevision,
+  };
+}
+
+function ensureRootIssue(context, options) {
+  ensureRootMode(context);
+  ensureGithubSession(context.session, { requireRepo: true });
+  const mainIssue = parseIssueRef(options.issue, context.repo);
+  ensureSameRepo(mainIssue.repo, context.repo);
+  const mainIssueInfo = fetchIssueId(mainIssue);
+  const sessionIssueNumber = context.session?.data?.context?.issue?.number || null;
+  if (sessionIssueNumber && sessionIssueNumber !== mainIssue.number) {
+    throw new Error('当前 .pace/session.yaml 绑定的 issue 与目标主 issue 不一致；请先用正确参数重跑 pace-init.js');
+  }
+  const rootTitle = options.title || `issue-${mainIssue.number}-doc`;
+  const indexComment = findMainIssueIndexComment(context.repo, mainIssue.number);
+  const indexInfo = indexComment ? parseMainIssueIndexComment(indexComment.body || '') : null;
+  const existingCandidates = listIssuesByTitle(context.repo, rootTitle);
+
+  let rootIssue;
+  if (indexInfo?.rootIssueUrl) {
+    rootIssue = parseIssueRef(indexInfo.rootIssueUrl, context.repo);
+  } else {
+    const existing = existingCandidates.find((item) => {
+      const info = fetchIssueId({ repo: context.repo, number: item.number, url: item.url });
+      const parsed = parseRootState(info.body || '');
+      return parsed?.main_issue?.url === mainIssue.url;
+    });
+    if (existing) {
+      rootIssue = { repo: context.repo, number: existing.number, url: existing.url };
+    } else {
+      const seedState = {
+        main_issue: { number: mainIssue.number, url: mainIssue.url },
+        doc_root: { title: rootTitle },
+        init_params: buildInitParams(context, {
+          issue: {
+            url: mainIssue.url,
+            title: mainIssueInfo.title || '',
+            type: resolveIssueType(mainIssueInfo, context.session?.data?.context?.issue?.type || ''),
+          },
+        }),
+        docs: {},
+        chains: {},
+        updated_at: new Date().toISOString(),
+      };
+      rootIssue = createIssue(context.repo, rootTitle, renderRootBody(seedState));
+      const rootInfo = fetchIssueId(rootIssue);
+      linkSubIssue(context.repo, mainIssue.number, rootInfo.id);
+    }
+  }
+
+  const rootInfo = fetchIssueId(rootIssue);
+  const state = parseRootState(rootInfo.body || '');
+  state.main_issue = { number: mainIssue.number, url: mainIssue.url };
+  state.doc_root = { title: rootTitle, number: rootInfo.number, url: rootInfo.url };
+  state.init_params = buildInitParams(context, {
+    issue: {
+      url: mainIssue.url,
+      title: mainIssueInfo.title || '',
+      type: resolveIssueType(mainIssueInfo, state.init_params?.issue_type || ''),
+    },
+  });
+  state.docs = state.docs || {};
+  state.chains = state.chains || {};
+  upsertIndexedDoc(context, { repo: context.repo, number: rootInfo.number, url: rootInfo.url }, state, {
+    docKey: 'init-params',
+    title: `issue-${mainIssue.number}-init-params`,
+    body: renderInitParamsBody({
+      ...state,
+      main_issue: { number: mainIssue.number, url: mainIssue.url },
+      doc_root: { title: rootTitle, number: rootInfo.number, url: rootInfo.url },
+    }),
+  });
+  updateRootIssue(context, rootIssue, state);
+  upsertMainIssueIndexComment(context, state);
+
+  return {
+    mainIssue,
+    rootIssue: { repo: context.repo, number: rootInfo.number, url: rootInfo.url, title: rootTitle },
+    state,
   };
 }
 
@@ -152,58 +659,13 @@ function commandCheckBody(options) {
 }
 
 function commandUpdateBody(context, options) {
-  if (!context.repo) {
-    throw new Error('当前 session 未配置 GitHub repo');
-  }
-  const issue = parseIssueRef(options.issue, context.repo);
-  ensureSameRepo(issue.repo, context.repo);
-  const { path: bodyPath, body } = readBodyFile(options['body-file']);
-  const maxChars = resolveMaxChars(options['max-chars']);
-  const count = ensureBodyWithinLimit(body, maxChars);
-  ensureGithubSession(context.session, { requireRepo: true });
-  run('gh', ['issue', 'edit', String(issue.number), '--repo', issue.repo, '--body-file', bodyPath], {
-    stdio: 'inherit',
-  });
-  console.log(`已更新 issue body: ${issue.url}`);
-  console.log(`正文长度: ${count}/${maxChars}`);
+  ensureRootMode(context);
+  throw new Error('multica + github 模式下禁止直接使用 update-body；请改用 ensure-root / upsert-doc');
 }
 
 function commandCreateDoc(context, options) {
-  if (!options.title) {
-    throw new Error('create-doc 缺少 --title');
-  }
-  const repo = context.repo;
-  if (!repo) {
-    throw new Error('当前 session 未配置 GitHub repo');
-  }
-  const { path: bodyPath, body } = readBodyFile(options['body-file']);
-  const maxChars = resolveMaxChars(options['max-chars']);
-  const count = ensureBodyWithinLimit(body, maxChars);
-  ensureGithubSession(context.session, { requireRepo: true });
-  const createdUrl = run('gh', ['issue', 'create', '--repo', repo, '--title', options.title, '--body-file', bodyPath]);
-  console.log(`已创建文档 issue: ${createdUrl}`);
-  console.log(`正文长度: ${count}/${maxChars}`);
-
-  if (options.parent) {
-    const parent = parseIssueRef(options.parent, repo);
-    ensureSameRepo(parent.repo, repo);
-    const child = parseIssueRef(createdUrl, repo);
-    const childInfo = fetchIssueId(child);
-    const [owner, name] = repo.split('/');
-    run(
-      'gh',
-      [
-        'api',
-        `repos/${owner}/${name}/issues/${parent.number}/sub_issues`,
-        '--method',
-        'POST',
-        '-f',
-        `sub_issue_id=${childInfo.id}`,
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] }
-    );
-    console.log(`已关联到父 issue: ${parent.url}`);
-  }
+  ensureRootMode(context);
+  throw new Error('multica + github 模式下禁止直接使用 create-doc；请改用 ensure-root / upsert-doc');
 }
 
 function commandAppendAudit(context, options) {
@@ -220,6 +682,90 @@ function commandAppendAudit(context, options) {
   console.log(`已追加审计 comment: ${issue.url}`);
 }
 
+function commandEnsureRoot(context, options) {
+  if (!options.issue) {
+    throw new Error('ensure-root 缺少 --issue');
+  }
+  const { rootIssue } = ensureRootIssue(context, options);
+  console.log(`已就绪文档 root issue: ${rootIssue.url}`);
+}
+
+function commandResolveInit(context, options) {
+  const mainIssue = parseIssueRef(options.issue, context.repo || '');
+  ensureGithubRepoAccess(mainIssue.repo);
+  const indexComment = findMainIssueIndexComment(mainIssue.repo, mainIssue.number);
+  if (!indexComment) {
+    throw new Error('当前主 issue 尚未建立文档索引 comment；请先执行 ensure-root');
+  }
+  const parsed = parseMainIssueIndexComment(indexComment.body || '');
+  if (!parsed.rootIssueUrl || !parsed.initParamsIssueUrl) {
+    throw new Error('主 issue 的文档索引 comment 缺少 root issue 或初始化参数 issue');
+  }
+  const rootIssue = parseIssueRef(parsed.rootIssueUrl, mainIssue.repo);
+  const initIssue = parseIssueRef(parsed.initParamsIssueUrl, mainIssue.repo);
+  ensureSameRepo(rootIssue.repo, mainIssue.repo);
+  ensureSameRepo(initIssue.repo, mainIssue.repo);
+  const rootInfo = fetchIssueId(rootIssue);
+  const initInfo = fetchIssueId(initIssue);
+  const rootState = parseRootState(rootInfo.body || '');
+  const initParams = parseInitParamsBody(initInfo.body || '');
+  const payload = {
+    main_issue: { number: mainIssue.number, url: mainIssue.url },
+    root_issue: { number: rootIssue.number, url: rootIssue.url },
+    init_params_issue: { number: initIssue.number, url: initIssue.url },
+    init_params: initParams,
+    root_index_comment_id: indexComment.id || null,
+    root_state: rootState,
+  };
+  const format = options.format || 'command';
+  if (format === 'json') {
+    console.log(JSON.stringify(payload, null, 2));
+    return;
+  }
+  if (format === 'args') {
+    console.log(formatInitArgs(initParams));
+    return;
+  }
+  if (format === 'command') {
+    console.log(formatInitCommand(initParams));
+    return;
+  }
+  throw new Error(`resolve-init 不支持的 --format: ${format}`);
+}
+
+function commandUpsertDoc(context, options) {
+  if (!options.issue) {
+    throw new Error('upsert-doc 缺少 --issue');
+  }
+  if (!options['doc-key']) {
+    throw new Error('upsert-doc 缺少 --doc-key');
+  }
+  if (!options.title) {
+    throw new Error('upsert-doc 缺少 --title');
+  }
+
+  const { rootIssue, state } = ensureRootIssue(context, options);
+  const docKey = options['doc-key'];
+  const bodySource = options['body-file'] ? readBodyFile(options['body-file']) : null;
+  const body = bodySource?.body || `# ${options.title}\n\n待写入。\n`;
+  const maxChars = resolveMaxChars(options['max-chars']);
+  ensureBodyWithinLimit(body, maxChars);
+  const auditBody = options['audit-file'] ? readBodyFile(options['audit-file']).body : '';
+  const { issue: targetIssue, revision: nextRevision } = upsertIndexedDoc(context, rootIssue, state, {
+    docKey,
+    title: options.title,
+    body,
+    auditBody,
+  });
+  updateRootIssue(context, rootIssue, state);
+  upsertMainIssueIndexComment(context, state);
+
+  console.log(`已更新文档 key: ${docKey}`);
+  console.log(`文档 issue: ${targetIssue.url}`);
+  console.log(`最新修订: rev-${nextRevision}`);
+  console.log(`文档 root: ${rootIssue.url}`);
+}
+
 function main() {
   let parsed;
   try {
@@ -233,6 +779,15 @@ function main() {
 
   try {
     switch (parsed.command) {
+      case 'ensure-root':
+        commandEnsureRoot(context, parsed.options);
+        break;
+      case 'resolve-init':
+        commandResolveInit(context, parsed.options);
+        break;
+      case 'upsert-doc':
+        commandUpsertDoc(context, parsed.options);
+        break;
       case 'check-body':
         commandCheckBody(parsed.options);
         break;

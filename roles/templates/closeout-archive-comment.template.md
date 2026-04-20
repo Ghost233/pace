@@ -6,6 +6,11 @@
 - 角色：PACE-验收归档经理
 - 阶段：<阶段编号>
 - 主 Issue：<issue 链接>
+- 文档 Root Issue：<issue 链接 | 无>
+- 初始化参数 Issue：<issue 链接 | 无>
+- 主 Issue 文档索引 Comment：<comment 链接 | 无>
+- 执行仓库：<owner/repo | 无>
+- 执行分支：<branch | 无>
 - 归档结果：<已归档 | 已重新打开>
 - 验证来源：
   - `verification.md`

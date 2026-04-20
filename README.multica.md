@@ -20,11 +20,11 @@
 1. 必须先读取 `tracker.type`，再判断当前工作的真相源。
 2. 当 `tracker.type = github` 时，跨轮次真相源分成两层：
    - 主 issue 的追踪块与阶段结论 comment
-   - 文档 issue 的最新版 body 与审计 comment
+   - 文档 root issue、初始化参数子 issue、各文档子 issue 的最新版 body 与审计 comment
    `.pace/` 只是当前工作区的本地产物，不保证下轮还在。
 3. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须进入 GitHub 文档层；不能只同步 handoff 摘要。
 4. Multica issue 是流程入口和协作面。
-5. GitHub 主 issue 是阶段状态时间线；GitHub 文档 issue 是正文持久层。
+5. GitHub 主 issue 是阶段状态时间线与总入口；GitHub 文档 root issue 负责索引；各文档子 issue 负责正文持久层。
 6. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
 7. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
 8. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
@@ -42,6 +42,7 @@
 ```bash
 node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
   --repo <owner/repo> \
+  --branch <branch> \
   --github-user <username> \
   --git-name "<git name>" \
   --git-email "<git email>" \
@@ -52,6 +53,7 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
 ```
 
 这会生成 `.pace/session.yaml`，把本次 multica 运行所需的配置和上下文一次性写好。
+其中执行仓库地址和执行分支都必须显式指定，不能只给 repo 不给 branch。
 如果参数填错，直接用正确参数重新执行一次 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 即可覆盖 `.pace/session.yaml`。
 
 如果当前 shell 里没有 `pace-init` 这个命令，不代表没安装；这里默认不再暴露 PATH 命令入口，直接检查脚本文件：
@@ -171,9 +173,9 @@ gh auth switch -u <tracker.github.username>
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read`
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment`
 - `node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root`
+- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" upsert-doc`
 - `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body`
-- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body`
-- `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" create-doc`
 - `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" append-audit`
 
 `pace-gh` 会限制危险行为；在当前机器已完成 GitHub 登录时，它才可以切换到 session 中配置的 GitHub 用户：
@@ -185,12 +187,16 @@ gh auth switch -u <tracker.github.username>
 
 `pace-issue-doc` 负责 issue 文档层：
 
-- 用 issue body 保存最新版文档
+- 先为主 issue 创建或复用一个文档 root issue，例如 `issue-54-doc`
+- 初始化参数也要作为一个标准子文档 issue 保存，而不是只散落在 session 或 comment 中
+- 初始化参数子文档里必须包含执行仓库地址与执行分支
+- 用子 issue body 保存最新版文档
 - 用 comment 追加审计记录
 - 默认限制 body 小于 `60000` 字符
-- 可创建文档 issue，并可挂到父 issue 下
+- 创建或更新文档后，会自动把文档 root issue 与子文档索引回填到主 issue 的受控 comment
+- 在 `multica + github` 下，不要直接使用 `create-doc` / `update-body` 这种低层正文命令绕过索引回填
 - 交接模板必须列出当前文档集合；若正文滚动到新文档 issue，也必须把滚动链写进模板字段
-- 从这里开始，正式协议只有这一套：主 issue comment + 文档 issue body/comment；不要再把“全文镜像日志 comment”当成另一套并行协议
+- 从这里开始，正式协议只有这一套：主 issue comment + 文档 root issue + 初始化参数子 issue + 文档 issue body/comment；不要再把“全文镜像日志 comment”当成另一套并行协议
 
 ## 角色设计
 
@@ -218,6 +224,9 @@ gh auth switch -u <tracker.github.username>
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
 - 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 初始化
+- 除 `PACE-需求接管经理` 的首次接管外，其余角色在本轮开始前都应先通过 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue <main-issue>` 读取主 issue 对应的初始化参数，再调用 `pace-init.js`
+- `resolve-init` 默认直接输出一条可执行的 `pace-init.js multica ...` 命令；如需机器消费，可改用 `--format args` 或 `--format json`
+- 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数子 issue
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - `PACE-初始化经理` 只处理会话与工作区前置准备，不接管 requirement 内容
 - 其余角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
@@ -231,7 +240,7 @@ PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
    产物：`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`、必要时 `.pace/codebase/`
 2. `PACE-需求接管经理`
    条件：issue 尚无追踪块或 GitHub issue URL
-   产物：tracking block、tracking-init comment、归类结果、追踪相关文档 issue
+   产物：tracking block、tracking-init comment、归类结果、文档 root issue、初始化参数子 issue、追踪相关文档 issue
 3. `PACE-阶段经理`
    条件：requirement 信息已接管，但 `context.md` 或 checker 通过的 `plans/` 尚未齐备
    产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、主 issue 阶段 comment、对应文档 issue body 与审计 comment
@@ -500,16 +509,17 @@ Multica 新建标准 issue
 
 下面这些稳定文档也必须进入 GitHub 文档层：
 
-1. `tracking block`
-2. intake 影响到的 `requirements.md` / `roadmap.md` 条目
-3. `discussion-log.md`
-4. `context.md`
-5. `coverage.md`
-6. 全部 plan 文件
-7. `execution-log.md`
-8. 全部 `run summary`
-9. `verification.md`
-10. 当前 phase 的 archive 条目
+1. `init-params`
+2. `tracking block`
+3. intake 影响到的 `requirements.md` / `roadmap.md` 条目
+4. `discussion-log.md`
+5. `context.md`
+6. `coverage.md`
+7. 全部 plan 文件
+8. `execution-log.md`
+9. 全部 `run summary`
+10. `verification.md`
+11. 当前 phase 的 archive 条目
 
 中间阶段 comment 与 tracking block 可以用：
 
@@ -526,13 +536,15 @@ multica 模式下，本轮执行先读：
 
 1. `.pace/session.yaml`
 2. GitHub 主 issue 的追踪块与阶段结论 comment
-3. GitHub 文档 issue 的最新版 body 与审计 comment
+3. GitHub 文档 root issue、初始化参数子 issue与文档 issue 的最新版 body 与审计 comment
 4. `.pace/` 阶段产物
 
 唯一判定规则：
 
 - `.pace/session.yaml` 只负责本轮 config + context
 - 主 issue comment 只负责阶段状态、handoff、closeout
+- 文档 root issue 只负责索引
+- 初始化参数子 issue 只负责后续角色复用的初始化参数
 - 文档 issue body 只负责最新版稳定正文
 - 文档 issue comment 只负责正文更新审计
 - `.pace/` 只负责本轮工作区缓存副本
@@ -549,14 +561,14 @@ multica 模式下，本轮执行先读：
 
 同步规则：
 
-1. 最新版正文写入对应文档 issue 的 body，优先通过 `pace-issue-doc update-body`
+1. 最新版正文写入对应文档 issue 的 body，优先通过 `pace-issue-doc upsert-doc`
 2. 每次正文更新后，必须追加一条审计 comment
 3. 审计 comment 必须使用 [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
 4. 审计 comment 只记录来源文件、文档类型、修订号、变更摘要，不再承担全文镜像
 5. 单个文档 issue 的 body 默认限制 `60000` 字符
 6. 超过限制时，必须创建新的文档 issue，更新主 issue 或交接 comment 中的索引
 7. 最终 handoff comment 只能引用这些文档 issue / 审计 comment，不能替代正文
-8. 上面这组规则就是唯一正式协议；主 issue comment 与文档 issue body/comment 之外，不再定义第二套并行持久化协议
+8. 上面这组规则就是唯一正式协议；主 issue comment、文档 root issue、初始化参数子 issue与文档 issue body/comment 之外，不再定义第二套并行持久化协议
 
 ## 一条完整示例
 
@@ -565,7 +577,7 @@ multica 模式下，本轮执行先读：
 2. 如果当前仓库工作区未就绪，先交给 PACE-初始化经理
 3. 工作区就绪后，分配给 PACE-需求接管经理
 4. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
-5. 它写追踪初始化 comment，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
+5. 它写追踪初始化 comment，确保存在文档 root issue 与初始化参数子 issue，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
 6. PACE-阶段经理 依次跑 pace:intake / pace:discuss / pace:plan
 7. plan ready 后，handoff 给 PACE-交付经理
 8. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment，同时更新执行文档 issue

@@ -7,8 +7,8 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 ## 默认约定
 
-- 配置文件路径：`.pace/session.yaml`
-- `pace-init.js` 是唯一的参数校验入口；缺少哪些参数、是否允许继续，必须由脚本决定
+- `pace-init.js` 是唯一的参数校验入口与 `.pace/session.yaml` 写入入口；缺少哪些参数、是否允许继续，必须由脚本决定
+- `pace:config` 只负责收敛配置选择、更新模板值或组装初始化命令，不直接替代 `pace-init.js`
 - 如果 `.pace/` 不存在，先创建目录
 - 已有配置时，展示当前值并询问是否修改
 - 配置变更后输出摘要确认
@@ -51,7 +51,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 询问用户：
 
 - **本地** — 所有工作日志保存在 `.pace/` 目录，不依赖外部服务
-- **GitHub Issues** — 将阶段状态写到主 issue，将稳定正文写到文档 issue
+- **GitHub Issues** — 将阶段状态写到主 issue，将文档索引写到文档 root issue，将初始化参数写到专门的初始化参数子 issue，将稳定正文写到各文档子 issue
 
 ### 第二步补充：选择执行模式
 
@@ -64,8 +64,9 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 1. 询问 `owner/repo` 格式的仓库名
 2. 询问 GitHub 用户名
-3. 询问 git commit 使用的名字
-4. 询问 git commit 使用的邮箱
+3. 询问执行分支 `branch`
+4. 询问 git commit 使用的名字
+5. 询问 git commit 使用的邮箱
 5. 运行 `which gh` 检查 gh CLI 是否安装
    - 未安装：提示用户先在流程外安装（`brew install gh` 或参考 https://cli.github.com/），然后跳过验证，标记 `verified: false`
    - 已安装：继续验证
@@ -144,69 +145,26 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 
 常见 agent 类型：pace-executor, pace-planner, pace-verifier, pace-phase-researcher, pace-code-reviewer
 
-### 第八步：写入配置
+### 第八步：执行初始化
 
-将配置写入 `.pace/session.yaml`，格式如下：
+不要直接手写 `.pace/session.yaml`。根据上面的选择，构造并执行 `pace-init.js`：
 
-```yaml
-# PACE 会话配置
-# 由 pace:config 生成
+- 本地模式：
+  - `node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "<name>" --git-email "<email>"`
+- multica + github 模式：
+  - `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo "<owner/repo>" --branch "<branch>" --github-user "<username>" --git-name "<name>" --git-email "<email>" ...`
 
-config:
-  executor: claude-code                # claude-code | multica
-  tracker:
-    type: local                        # local | github
-    github:
-      repo: ""                         # owner/repo
-      username: ""                     # GitHub 用户名
-      verified: false                  # gh 连通性是否已验证
-      create_missing_issue: true       # 缺失 GitHub issue URL 时是否自动创建
-      sync_stage_comments: true        # 是否在阶段边界同步主 issue comment
-  git:
-    name: ""                           # git commit user.name
-    email: ""                          # git commit user.email
-  roles:
-    enabled: false
-    definitions_path: "roles"
-    managers:
-      dispatch: PACE-调度经理
-      setup: PACE-初始化经理
-      issue_intake: PACE-需求接管经理
-      phase: PACE-阶段经理
-      delivery: PACE-交付经理
-      closeout: PACE-验收归档经理
-  agents:
-    max_concurrent: 3
-    model_profile: balanced
+执行结果以脚本退出码与报错为准：
 
-context:
-  issue:
-    url: ""
-    number: null
-    title: ""
-    type: ""
-  pr:
-    url: ""
-    number: null
-  git:
-    branch: ""
-    base_branch: ""
-    head_sha: ""
-  role:
-    current: ""
-    previous: ""
-  session:
-    mode: ""
-    started_at: ""
-```
+- 成功：`.pace/session.yaml` 由脚本生成或覆盖
+- 失败：立即停止，把脚本报错原样反馈给用户
 
-如果原来的 `.pace/session.yaml` 已存在，写入时保留原有 `context` 区块，除非用户明确要求一起覆盖当前 issue / PR / branch / role。
-若用户选出的组合不属于上面的两种稳定组合，必须立即停止，不写入 session。
+若用户选出的组合不属于上面的两种稳定组合，必须立即停止，不执行初始化。
 
 ### 第九步：输出确认摘要
 
 ```
-配置已保存到 .pace/session.yaml
+初始化已完成并生成 `.pace/session.yaml`
 
 执行模式：{config.executor}
 追踪方式：{config.tracker.type}
@@ -229,6 +187,9 @@ git 身份：{config.git.name} <{config.git.email}>
 - 但必须明确告诉后续角色：优先使用 `pace-gh`；只有在当前机器已完成 GitHub 登录时，才允许在已登录账号之间切换；直接使用原生 `gh` 时，仍需要手工 `gh auth switch -u <tracker.github.username>`
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 - 不允许落盘不支持的模式组合
+- `multica + github` 模式下，必须显式收集并传入 `repo`、`branch`、`github-user`
+- `multica + github` 模式下，后续角色复用的初始化参数必须落到专门的初始化参数子 issue，而不是只留在本地 session
+- `multica + github` 模式下，主 issue 的受控索引 comment 必须回填文档 root issue 与子文档索引
 
 ## 后续路由
 

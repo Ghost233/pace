@@ -10,7 +10,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
 - multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local` 或 `pace:config`
+- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
 如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动 checker 子代理时使用对应的 model 参数。
 
@@ -20,6 +20,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 - 如果存在，读取 `.pace/phases/<phase>/context.md`
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 如果存在，读取 `.pace/codebase/`
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 plan
 - plans 写入 `.pace/phases/<phase>/plans/`
 - 保留 planner + checker 的两层结构
 

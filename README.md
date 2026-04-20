@@ -35,7 +35,16 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 
 ```bash
 node "$HOME/.codex/skills/pace/bin/pace-init.js" local
-node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
+  --repo <owner/repo> \
+  --branch <branch> \
+  --github-user <username> \
+  --git-name "<git name>" \
+  --git-email "<git email>" \
+  --issue-url "<issue url>" \
+  --issue-title "<issue title>" \
+  --issue-type "<bug|feature|task>" \
+  --current-role "<PACE-...>"
 ```
 
 如果你之前按旧习惯直接输入 `pace-init`，当前 shell 提示 `command not found` 是正常的；现在优先按下面顺序排查：
@@ -89,7 +98,7 @@ gh auth switch -u <tracker.github.username>
 - `pace-merge.js`：查看模板合并结果
 - `pace-git.js`：受限 git 操作
 - `pace-gh.js`：受限 GitHub issue 操作
-- `pace-issue-doc.js`：更新 issue body 文档与审计 comment
+- `pace-issue-doc.js`：维护主 issue、文档 root issue、子文档 issue 之间的索引、正文与审计 comment
 
 ## 快速开始
 
@@ -100,7 +109,16 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" local
 /pace:status
 
 # multica + roles
-node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
+  --repo <owner/repo> \
+  --branch <branch> \
+  --github-user <username> \
+  --git-name "<git name>" \
+  --git-email "<git email>" \
+  --issue-url "<issue url>" \
+  --issue-title "<issue title>" \
+  --issue-type "<bug|feature|task>" \
+  --current-role "<PACE-...>"
 # 然后进入 PACE-初始化经理
 
 # 受限 git 操作（推荐）
@@ -110,6 +128,8 @@ node "$HOME/.codex/skills/pace/bin/pace-git.js" info
 # 受限 GitHub 操作（推荐）
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" whoami
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue 72
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue 72
 node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md
 ```
 
@@ -148,7 +168,7 @@ intake → discuss → plan → execute → verify → archive
 PACE 现在推荐拆成两层：
 
 - **Skills 层**：`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify` 等，负责把某一步真正做完。
-- **Roles 层**：用于 `executor=multica` 且 `tracker.type=github` 的工作区前置准备与 requirement phase 管理，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub 主 issue 与文档 issue”。
+- **Roles 层**：用于 `executor=multica` 且 `tracker.type=github` 的工作区前置准备与 requirement phase 管理，负责“什么时候调用哪个 skill”“阶段之间如何交接”“什么时候同步到 GitHub 主 issue、文档 root issue、初始化参数子 issue与文档 issue”。
 
 推荐的最小角色集：
 
@@ -180,13 +200,15 @@ PACE 现在推荐拆成两层：
 3. 每次阶段切换至少同步一条 GitHub 主 issue comment：
    `tracking-init`、`intake`、`discuss`、`plan`、`execute`、`verify`、`archive`
 4. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须同步到 GitHub 文档层：
-   - 主 issue comment：阶段结论、handoff、阻塞、归档状态
+   - 主 issue comment：阶段结论、handoff、阻塞、归档状态，以及文档索引回填
+   - 文档 root issue：当前 issue 对应的文档索引，例如 `issue-54-doc`
+   - 初始化参数子 issue：后续角色复用的初始化参数，例如 `issue-54-init-params`
    - 文档 issue body：最新版正文，例如 `context.md`、计划文件、`execution-log.md`、`verification.md`
    - 文档审计 comment：记录某次 body 更新来自哪个文件、哪个角色、哪个修订
 5. 在 `tracker.type = github` 模式下，跨轮次真相源不是 `.pace/`，而是：
    - 主 issue 的追踪块与阶段结论 comment
-   - 文档 issue 的最新版 body
-   - 文档 issue 的审计 comment
+   - 文档 root issue、初始化参数子 issue、文档 issue 的最新版 body
+   - 文档 root issue、初始化参数子 issue、文档 issue 的审计 comment
 6. 文档正文默认限制在 `60000` 字符以内；超过限制时，必须新建下一个文档 issue，而不是继续把全文拆成多条 comment。
 7. 如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换 GitHub 用户；如果直接使用原生 `gh`，则必须先手工执行 `gh auth switch -u <tracker.github.username>`。如果没有 `gh`、未登录或该用户无权访问仓库，必须停止并明确要求用户在流程外介入。
 8. 如果流程会产出提交，必须同时明确使用哪个 GitHub 用户、哪个 git `name`、哪个 git `email`，不能依赖本机默认身份。
@@ -222,10 +244,20 @@ node "$HOME/.codex/skills/pace/bin/pace-merge.js" multica   # → .pace-config.y
 
 ```bash
 node "$HOME/.codex/skills/pace/bin/pace-init.js" local
-node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
+  --repo <owner/repo> \
+  --branch <branch> \
+  --github-user <username> \
+  --git-name "<git name>" \
+  --git-email "<git email>" \
+  --issue-url "<issue url>" \
+  --issue-title "<issue title>" \
+  --issue-type "<bug|feature|task>" \
+  --current-role "<PACE-...>"
 ```
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
+在 `multica` 模式下，执行仓库地址和执行分支都必须显式提供。
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
 `pace-merge` 只用于排查模板值，不是正常流程的必经步骤。
 
@@ -278,7 +310,8 @@ node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --issue 72 --url "https://github.com/user-attachments/files/xxx/file.png"
-node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --body-file /tmp/doc.md
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue 72
+node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" upsert-doc --issue 72 --doc-key context --title "issue-72-context" --body-file /tmp/doc.md
 ```
 
 `pace-gh` 只开放白名单命令：
@@ -291,10 +324,18 @@ node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --b
 
 `pace-issue-doc` 只处理文档层：
 
+- `ensure-root`
+- `upsert-doc`
 - `check-body`
-- `update-body`
-- `create-doc`
 - `append-audit`
+
+约束：
+
+- 先为主 issue 创建或复用一个文档 root issue
+- 初始化参数也应作为标准子文档 issue 保存
+- 每个子文档 issue 创建或更新后，都要把链接和修订回填到文档 root issue
+- 同时把文档 root issue 与子文档索引回填到主 issue comment
+- 在 `multica + github` 下，不要直接用低层正文命令绕过 `ensure-root / upsert-doc`
 
 不支持：
 

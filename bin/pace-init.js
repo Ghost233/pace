@@ -20,6 +20,7 @@ function usage() {
       '',
       '常用参数:',
       '  --repo <owner/repo>',
+      '  --branch <name>',
       '  --github-user <username>',
       '  --git-name <name>',
       '  --git-email <email>',
@@ -27,23 +28,23 @@ function usage() {
       '  --issue-title <title>',
       '  --issue-type <bug|feature|task>',
       '  --pr-url <url>',
-      '  --branch <name>',
       '  --base-branch <name>',
       '  --current-role <PACE-...>',
       '  --max-concurrent <n>',
       '  --model-profile <quality|balanced|budget|adaptive>',
       '',
       '自动探测规则:',
-      '  --repo         未传时，尝试从 `git remote get-url origin` 推导。',
-      '  --branch       未传时，尝试读取当前 git 分支。',
+      '  --repo         multica 模式必填；local 模式忽略。',
+      '  --branch       multica 模式必填；local 模式未传时，尝试读取当前 git 分支。',
       '  --base-branch  未传时，尝试读取 `origin/HEAD`，失败则回退为 `main`。',
       '  --github-user  multica 模式必填；local 模式未传则保留为空。',
       '  --git-name     未传时，尝试读取 `git config user.name`。',
       '  --git-email    未传时，尝试读取 `git config user.email`。',
       '  --pr-url       未传时，保留为空。',
       '',
-      'multica 模式建议至少传入:',
+      'multica 模式必须显式传入:',
       '  --repo',
+      '  --branch',
       '  --github-user',
       '  --git-name',
       '  --git-email',
@@ -62,6 +63,7 @@ function usage() {
       '',
       '  node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \\',
       '    --repo Conso-xFinite/Telegram-iOS \\',
+      '    --branch fix-draft-send-button \\',
       '    --github-user ghost233 \\',
       '    --git-name "Ghost233" \\',
       '    --git-email "you@example.com" \\',
@@ -143,11 +145,6 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function parseGitHubRepoFromRemote(remoteUrl) {
-  const match = remoteUrl.match(/github\.com[:/](.+?)(?:\.git)?$/);
-  return match ? match[1] : '';
-}
-
 function parseNumberFromUrl(url, marker) {
   if (!url) return null;
   const regex = new RegExp(`/${marker}/(\\d+)(?:$|[?#/])`);
@@ -184,15 +181,15 @@ function buildConfig(mode, options) {
   const loaded = loadMergedConfig(process.cwd(), mode, __filename);
   const config = loaded.merged;
 
-  const branch = options.branch || run('git', ['branch', '--show-current']);
+  const branch = mode === 'multica'
+    ? (options.branch || '')
+    : (options.branch || run('git', ['branch', '--show-current']));
   const headSha = run('git', ['rev-parse', 'HEAD']);
   const defaultBase = run('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'])
     .replace(/^origin\//, '');
   const baseBranch = options['base-branch'] || defaultBase || 'main';
-  const remoteUrl = run('git', ['remote', 'get-url', 'origin']);
-  const remoteRepo = parseGitHubRepoFromRemote(remoteUrl);
   const repo = mode === 'multica'
-    ? (options.repo || remoteRepo || config.tracker?.github?.repo || '')
+    ? (options.repo || '')
     : '';
 
   const gitName = options['git-name'] || run('git', ['config', 'user.name']) || config.git?.name || '';
@@ -200,12 +197,37 @@ function buildConfig(mode, options) {
   const loginProbe = mode === 'multica'
     ? (options['github-user'] || '')
     : '';
+  const issueUrl = options['issue-url'] || '';
+  const issueTitle = options['issue-title'] || '';
+  const issueType = options['issue-type'] || '';
+  const currentRole = options['current-role'] || '';
 
   if (mode === 'multica' && !repo) {
-    throw new Error('multica 模式必须提供 --repo，或当前仓库 remote 可解析出 GitHub repo');
+    throw new Error('multica 模式必须显式提供 --repo');
+  }
+  if (mode === 'multica' && !branch) {
+    throw new Error('multica 模式必须显式提供 --branch');
   }
   if (mode === 'multica' && !loginProbe) {
     throw new Error('multica 模式必须显式提供 --github-user');
+  }
+  if (mode === 'multica' && !options['git-name']) {
+    throw new Error('multica 模式必须显式提供 --git-name');
+  }
+  if (mode === 'multica' && !options['git-email']) {
+    throw new Error('multica 模式必须显式提供 --git-email');
+  }
+  if (mode === 'multica' && !issueUrl) {
+    throw new Error('multica 模式必须显式提供 --issue-url');
+  }
+  if (mode === 'multica' && !issueTitle) {
+    throw new Error('multica 模式必须显式提供 --issue-title');
+  }
+  if (mode === 'multica' && !issueType) {
+    throw new Error('multica 模式必须显式提供 --issue-type');
+  }
+  if (mode === 'multica' && !currentRole) {
+    throw new Error('multica 模式必须显式提供 --current-role');
   }
 
   const validation = repo ? validateGitHub(repo, loginProbe) : { verified: false, reason: '未提供 repo', login: loginProbe };
@@ -239,10 +261,10 @@ function buildConfig(mode, options) {
     config,
     context: {
       issue: {
-        url: options['issue-url'] || '',
-        number: parseNumberFromUrl(options['issue-url'] || '', 'issues'),
-        title: options['issue-title'] || '',
-        type: options['issue-type'] || '',
+        url: issueUrl,
+        number: parseNumberFromUrl(issueUrl, 'issues'),
+        title: issueTitle,
+        type: issueType,
       },
       pr: {
         url: options['pr-url'] || '',
@@ -254,7 +276,7 @@ function buildConfig(mode, options) {
         head_sha: headSha,
       },
       role: {
-        current: options['current-role'] || '',
+        current: currentRole,
         previous: '',
       },
       session: {

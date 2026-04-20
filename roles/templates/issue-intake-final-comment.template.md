@@ -5,6 +5,11 @@
 
 - 角色：PACE-需求接管经理
 - 主 Issue：<issue 链接>
+- 文档 Root Issue：<issue 链接 | 无>
+- 初始化参数 Issue：<issue 链接 | 无>
+- 主 Issue 文档索引 Comment：<comment 链接 | 无>
+- 执行仓库：<owner/repo | 无>
+- 执行分支：<branch | 无>
 - 结果类型：<可进入阶段收敛 | 需要补充 | 改走 Owner Skill>
 - 需求归类：<新需求 | 阶段变更 | 缺陷修复 | 阻塞升级>
 - 目标摘要：
@@ -18,6 +23,7 @@
 - 外部依赖：
   - <没有则写 无>
 - 文档集合：
+  - `init-params`: <issue 链接 @ rev-N>
   - `tracking-block`: <issue 链接 @ rev-N>
   - `requirement-entry:<REQ-id>`: <issue 链接 @ rev-N | 无>
   - `roadmap-entry:<phase-id>`: <issue 链接 @ rev-N | 无>
@@ -29,7 +35,7 @@
 - 审计 Comment：
   - <comment 链接列表；没有则写 无>
 - 下一角色：<PACE-阶段经理 | PACE-初始化经理 | 无>
-- 下一技能：<pace:intake | pace:status | Owner Skill:<skill> | 无>
+- 下一技能：<pace:intake | pace:discuss | pace:plan | pace:status | Owner Skill:<skill> | 无>
 - 恢复角色：<PACE-需求接管经理 | PACE-初始化经理 | 无>
 - 下一阶段必需输入：
   - 需求目标

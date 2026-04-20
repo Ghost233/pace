@@ -10,7 +10,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
 - multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local` 或 `pace:config`
+- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
 如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
@@ -22,7 +22,7 @@ description: 验证某个 phase 的交付是否满足目标、计划和关键决
 - 若存在，读取 `.pace/phases/<phase>/coverage.md`
 - 读取 `.pace/roadmap.md` 与 `.pace/state.md`
 - 将验证结果写入 phase 目录，并同步 state
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue / 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 verify
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 verify
 
 ## 必需产物
 

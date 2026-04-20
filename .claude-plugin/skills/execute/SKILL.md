@@ -12,7 +12,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
 - multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local` 或 `pace:config`
+- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
 如果配置文件存在，提取以下配置并应用于后续流程：
 - `agents.max_concurrent`：直接控制每个 wave 的子代理并行数上限
@@ -25,7 +25,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 更新 `.pace/state.md`
 - 将 run summaries 写入 `.pace/phases/<phase>/runs/`
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue / 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
 - 默认按 wave 并行执行，以下情况串行：
   - 两个 plan 修改同一文件
   - 两个 plan 有显式 Depends On 关系

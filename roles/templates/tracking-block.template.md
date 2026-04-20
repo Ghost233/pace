@@ -5,7 +5,13 @@
 
 - 追踪模式：github
 - 主 Issue：<https://github.com/owner/repo/issues/123>
+- 文档 Root Issue：<https://github.com/owner/repo/issues/456 | 无>
+- 初始化参数 Issue：<https://github.com/owner/repo/issues/457 | 无>
+- 主 Issue 文档索引 Comment：<https://github.com/owner/repo/issues/123#issuecomment-... | 无>
+- 执行仓库：<owner/repo>
+- 执行分支：<branch>
 - 文档集合：
+  - `init-params`: <issue 链接 @ rev-N>
   - `tracking-block`: <issue 链接 @ rev-N>
   - `requirement-entry:<REQ-id>`: <issue 链接 @ rev-N | 无>
   - `roadmap-entry:<phase-id>`: <issue 链接 @ rev-N | 无>
