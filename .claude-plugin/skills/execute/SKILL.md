@@ -139,6 +139,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
   - `coverage`
 - 每次 `upsert-doc` 如有执行摘要、重试说明或验证结果，配套写审计 comment
 - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 execute 完成
+- 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
 
 ## Execution Log 标准
 

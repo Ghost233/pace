@@ -27,6 +27,10 @@ function currentLogin() {
 
 function switchUser(expectedUser) {
   if (!expectedUser) return;
+  const current = currentLogin();
+  if (current && current === expectedUser) {
+    return;
+  }
   try {
     run('gh', ['auth', 'switch', '-u', expectedUser], {
       stdio: ['ignore', 'ignore', 'pipe'],

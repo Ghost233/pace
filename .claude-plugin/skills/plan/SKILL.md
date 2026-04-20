@@ -54,6 +54,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
    - 再分别执行 `upsert-doc` 同步 `coverage`、每份 `plan-file`、必要时的 checker review note 到对应文档子 issue body
    - 每次 `upsert-doc` 如有修订摘要，配套写审计 comment
    - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 plan 完成
+   - 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
 8. 若 verdict = pass，结束并路由 `pace:execute`
 
 ## 通过条件

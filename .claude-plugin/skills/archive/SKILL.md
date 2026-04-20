@@ -57,6 +57,7 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - 再执行 `upsert-doc` 同步 `archive-entry` 到对应文档子 issue body
 - 如有归档摘要、重新打开原因或 live outputs 校验说明，配套写审计 comment
 - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 archive 完成
+- 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
 
 ## 边界
 

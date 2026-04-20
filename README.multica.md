@@ -30,8 +30,9 @@
 8. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
 9. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
 10. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
-11. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
-12. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
+11. 如果流程会产出 multica issue 读取、评论、状态变更或角色切换，推荐只使用 `pace-multica`，不要直接运行原生 `multica issue ...`
+12. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+13. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -71,6 +72,13 @@
 ```bash
 multica repo checkout <repo-url>
 cd <checkout 后的仓库根目录>
+```
+
+进入角色后，平台侧推荐最小命令：
+
+```bash
+node "$HOME/.codex/skills/pace/bin/pace-multica.js" issue-get --issue <multica-issue-id>
+node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-list --issue <multica-issue-id> --limit 50
 ```
 ### 1. 初始化 multica 会话
 
@@ -222,6 +230,27 @@ gh auth switch -u <tracker.github.username>
 - 不支持 PR 操作
 - 不支持 release / workflow / repo 管理操作
 
+## 受限 multica 平台入口
+
+推荐只通过 `pace-multica` 执行 multica issue 相关操作。
+
+允许的命令：
+
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" issue-get --issue <multica-issue-id>`
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-list --issue <multica-issue-id> --limit 50`
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-add --issue <multica-issue-id> --body-file /tmp/comment.md`
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" status --issue <multica-issue-id> --value blocked`
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" assign --issue <multica-issue-id> --to "PACE-初始化经理"`
+- `node "$HOME/.codex/skills/pace/bin/pace-multica.js" handoff --issue <multica-issue-id> --to "PACE-初始化经理" --status blocked --body-file /tmp/final.md`
+
+限制规则：
+
+- 不支持任意 `multica issue` 参数透传
+- 不允许只写 handoff comment 而不切 assignee
+- `handoff` 的成功条件是：comment（可选）已发布、目标角色 assignee 已切换、必要状态已同步
+- 如果 `pace-multica` 失败，不能直接 fallback 到原生 `multica issue ...`
+- `pace-gh`、`pace-git`、`pace-multica` 任一失败时，都应先修正 wrapper 或输入，再重试；不要直接切回原生命令继续跑主流程
+
 `pace-issue-doc` 负责 issue 文档层：
 
 - 先为主 issue 创建或复用一个文档 root issue，例如 `issue-54-doc`
@@ -268,6 +297,8 @@ gh auth switch -u <tracker.github.username>
 - 本地 `gh auth status`、`gh api user`、`git config` 只允许校验当前机器状态，不允许拿来补齐缺失的 `pace-init.js` 参数
 - `pace-init.js` 成功后，如果当前唯一阻塞是 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md` 缺失，则必须直接 `handoff: PACE-初始化经理`；不要再输出 `needs_user_input`
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
+- 在 multica 角色模式下，`handoff: <角色>` 不只是评论里的语义文本；必须进一步通过 `pace-multica.js handoff --issue <multica-issue-id> --to <角色>` 落成真实 reassignment
+- `pace-gh`、`pace-git`、`pace-multica` 任一失败时，都不能直接 fallback 到对应的原生命令；除非角色/skill 文档明确把该原生命令列为唯一允许例外
 - `PACE-初始化经理` 只处理会话与工作区前置准备，不接管 requirement 内容
 - 其余角色只处理 `Type = requirement` 的当前 phase；若当前 phase 是 `tech`，必须退出角色链并改走 `Owner Skill`
 

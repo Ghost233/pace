@@ -194,6 +194,7 @@ git 身份：{config.git.name} <{config.git.email}>
 - 不处理 gh CLI 安装，只提示
 - 不要在这里直接创建 GitHub issue；这里只配置策略，不执行业务同步
 - 但必须明确告诉后续角色：优先使用 `pace-gh`；只有在当前机器已完成 GitHub 登录时，才允许在已登录账号之间切换；直接使用原生 `gh` 时，仍需要手工 `gh auth switch -u <tracker.github.username>`
+- 也必须明确告诉后续角色：multica 平台侧的 issue 读取、评论、状态与 handoff，统一优先使用 `pace-multica`；不能把 `handoff:` 只写成 comment 文本
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 - 不允许落盘不支持的模式组合
 - `multica + github` 模式下，必须显式收集并传入 `repo`、`branch`、`github-user`

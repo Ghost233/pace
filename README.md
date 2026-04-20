@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
-- scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-git.js`、`~/.codex/skills/pace/bin/pace-gh.js`、`~/.codex/skills/pace/bin/pace-issue-doc.js`
+- scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-git.js`、`~/.codex/skills/pace/bin/pace-gh.js`、`~/.codex/skills/pace/bin/pace-issue-doc.js`、`~/.codex/skills/pace/bin/pace-multica.js`
 
 这些脚本直接用 `node` 调用，不再额外生成 PATH 命令入口。
 
@@ -83,6 +83,8 @@ gh auth switch -u <tracker.github.username>
 
 如果你希望限制 GitHub 误操作，推荐只通过 `pace-gh` 访问 issue，而不要直接运行原生 `gh`。`pace-gh` 只开放受限的 issue 读取、issue 评论发送、附件下载等白名单操作，并且只会在当前机器已完成 GitHub 登录的前提下按 `.pace/session.yaml` 切换 GitHub 用户。
 
+如果你希望限制 multica 平台误操作，推荐只通过 `pace-multica` 访问 multica issue，而不要直接运行原生 `multica issue ...`。`pace-multica` 只开放 issue 读取、评论、状态变更、指派与 handoff，并把 handoff 落成真实 reassignment，而不是只写 comment 文本。
+
 如果流程会产出 git 提交，还必须在配置里明确指定：
 
 - `git.name`
@@ -99,6 +101,7 @@ gh auth switch -u <tracker.github.username>
 - `pace-git.js`：受限 git 操作
 - `pace-gh.js`：受限 GitHub issue 操作
 - `pace-issue-doc.js`：维护主 issue、文档 root issue、子文档 issue 之间的索引、正文与审计 comment
+- `pace-multica.js`：受限 multica issue 平台动作
 
 ## 快速开始
 

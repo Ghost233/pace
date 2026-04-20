@@ -75,20 +75,22 @@ chmod +x \
   "$PACE_HOME/bin/pace-init.js" \
   "$PACE_HOME/bin/pace-git.js" \
   "$PACE_HOME/bin/pace-gh.js" \
-  "$PACE_HOME/bin/pace-issue-doc.js"
+  "$PACE_HOME/bin/pace-issue-doc.js" \
+  "$PACE_HOME/bin/pace-multica.js"
 
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js, $PACE_HOME/bin/pace-issue-doc.js
+- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js, $PACE_HOME/bin/pace-issue-doc.js, $PACE_HOME/bin/pace-multica.js
 
 之后可直接在任意项目根目录运行:
 
   node "$PACE_HOME/bin/pace-init.js" local
-  node "$PACE_HOME/bin/pace-init.js" multica --repo <owner/repo> --github-user <username>
+  node "$PACE_HOME/bin/pace-init.js" multica --repo <owner/repo> --branch <branch> --github-user <username> --git-name "<git name>" --git-email "<git email>" --issue-url "<issue url>" --issue-title "<issue title>" --issue-type <bug|feature|task> --current-role "PACE-需求接管经理"
   node "$PACE_HOME/bin/pace-git.js" status
   node "$PACE_HOME/bin/pace-gh.js" issue-read --issue 72
+  node "$PACE_HOME/bin/pace-multica.js" issue-get --issue <multica-issue-id>
   node "$PACE_HOME/bin/pace-issue-doc.js" check-body --body-file /tmp/doc.md
 
 仅在需要排查模板合并结果时，再运行:
