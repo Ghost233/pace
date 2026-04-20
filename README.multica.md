@@ -490,12 +490,13 @@ Multica 新建标准 issue
 
 下面这些主 issue comment 是硬要求：
 
-1. `intake`
-2. `discuss`
-3. `plan`
-4. `execute`
-5. `verify`
-6. `archive`
+1. `tracking-init`
+2. `intake`
+3. `discuss`
+4. `plan`
+5. `execute`
+6. `verify`
+7. `archive`
 
 下面这些稳定文档也必须进入 GitHub 文档层：
 

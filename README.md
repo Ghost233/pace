@@ -229,6 +229,13 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica --repo <owner/repo> --g
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
 `pace-merge` 只用于排查模板值，不是正常流程的必经步骤。
 
+统一初始化原则：
+
+- 不管是 `local` 还是 `multica`，进入正式流程前的第一步都应调用 `pace-init.js`
+- 由 `pace-init.js` 自己决定缺少哪些参数、是否允许继续
+- 如果 `pace-init.js` 失败，必须立即停止，不能跳过到后续 skill / role
+- roles / skills / README 不再各自维护另一套参数必填清单
+
 受限 git 入口：
 
 ```bash
@@ -298,26 +305,48 @@ node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" update-body --issue 72 --b
 
 配置字段：
 
-```yaml
-# 执行引擎
-executor: claude-code    # claude-code | multica
+本地模式示例：
 
-# 文档追踪
+```yaml
+executor: claude-code
+
 tracker:
-  type: local            # local | github
+  type: local
   github:
-    repo: ""             # owner/repo
-    username: ""         # GitHub 用户名
-    verified: false      # gh 连通性验证
+    repo: ""
+    username: ""
+    verified: false
+    create_missing_issue: false
+    sync_stage_comments: false
+
+git:
+  name: ""
+  email: ""
+
+roles:
+  enabled: false
+```
+
+multica 模式示例：
+
+```yaml
+executor: multica
+
+tracker:
+  type: github
+  github:
+    repo: "owner/repo"
+    username: "github-user"
+    verified: true
     create_missing_issue: true
     sync_stage_comments: true
 
 git:
-  name: ""               # git commit user.name
-  email: ""              # git commit user.email
+  name: "Your Name"
+  email: "you@example.com"
 
 roles:
-  enabled: false
+  enabled: true
   definitions_path: "roles"
   managers:
     dispatch: PACE-调度经理
@@ -327,10 +356,9 @@ roles:
     delivery: PACE-交付经理
     closeout: PACE-验收归档经理
 
-# 子代理设置
 agents:
-  max_concurrent: 3      # 最大并行数 (1-5)
-  model_profile: balanced # quality | balanced | budget | adaptive
+  max_concurrent: 3
+  model_profile: balanced
 ```
 
 会话文件字段：
