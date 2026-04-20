@@ -94,7 +94,7 @@ function loadGithubContext() {
 
 function ensureRepo(repo) {
   if (!repo) {
-    throw new Error('当前未配置 GitHub repo，请先运行 `node <pace-bin>/pace-init.js multica` 或补齐 `.pace/session.yaml`');
+    throw new Error('当前未配置 GitHub repo。必须先让 `pace-init.js` 成功生成 `.pace/session.yaml`，在此之前禁止调用 pace-gh。');
   }
 }
 

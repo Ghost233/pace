@@ -202,32 +202,22 @@ function buildConfig(mode, options) {
   const issueType = options['issue-type'] || '';
   const currentRole = options['current-role'] || '';
 
-  if (mode === 'multica' && !repo) {
-    throw new Error('multica 模式必须显式提供 --repo');
-  }
-  if (mode === 'multica' && !branch) {
-    throw new Error('multica 模式必须显式提供 --branch');
-  }
-  if (mode === 'multica' && !loginProbe) {
-    throw new Error('multica 模式必须显式提供 --github-user');
-  }
-  if (mode === 'multica' && !options['git-name']) {
-    throw new Error('multica 模式必须显式提供 --git-name');
-  }
-  if (mode === 'multica' && !options['git-email']) {
-    throw new Error('multica 模式必须显式提供 --git-email');
-  }
-  if (mode === 'multica' && !issueUrl) {
-    throw new Error('multica 模式必须显式提供 --issue-url');
-  }
-  if (mode === 'multica' && !issueTitle) {
-    throw new Error('multica 模式必须显式提供 --issue-title');
-  }
-  if (mode === 'multica' && !issueType) {
-    throw new Error('multica 模式必须显式提供 --issue-type');
-  }
-  if (mode === 'multica' && !currentRole) {
-    throw new Error('multica 模式必须显式提供 --current-role');
+  if (mode === 'multica') {
+    const missing = [];
+    if (!repo) missing.push('--repo');
+    if (!branch) missing.push('--branch');
+    if (!loginProbe) missing.push('--github-user');
+    if (!options['git-name']) missing.push('--git-name');
+    if (!options['git-email']) missing.push('--git-email');
+    if (!issueUrl) missing.push('--issue-url');
+    if (!issueTitle) missing.push('--issue-title');
+    if (!issueType) missing.push('--issue-type');
+    if (!currentRole) missing.push('--current-role');
+    if (missing.length > 0) {
+      throw new Error(
+        `multica 模式缺少必填参数:\n- ${missing.join('\n- ')}\n请一次性补齐后重试，不要逐项猜测或回填本地 git/gh 状态。`
+      );
+    }
   }
 
   const validation = repo ? validateGitHub(repo, loginProbe) : { verified: false, reason: '未提供 repo', login: loginProbe };
