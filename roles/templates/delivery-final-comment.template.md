@@ -17,16 +17,14 @@
 - 覆盖状态：
   - <已完成 X / 总数 Y>
 - 产出的运行记录：
-  - `runs/<file>.md`
+  - <已聚合到 phase-section:execution 的 run summary 摘要>
 - 执行日志：
-  - `execution-log.md`
+  - `phase-section:execution`
 - 文档集合：
-  - `execution-log`: <issue 链接 @ rev-N>
-  - `run-summary:<file>`: <issue 链接 @ rev-N>
-  - `coverage`: <issue 链接 @ rev-N>
-  - <继续列出全部 run-summary 文档>
+  - `phase:<phase-id>`: <issue 链接 @ rev-N>
+  - `phase-section:execution`: <已更新 | 无>
 - 最新正文节点：
-  - <文档类型 -> issue 链接 @ rev-N (latest)>
+  - <phase-issue -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：
@@ -40,9 +38,9 @@
 - 下一技能：<pace:verify | pace:plan | pace:discuss | pace:execute | Owner Skill:<skill> | 无>
 - 恢复角色：<PACE-交付经理 | PACE-阶段经理 | 无>
 - 下一阶段必需输入：
-  - execution-log.md
+  - phase-section:execution
   - 运行摘要
-  - coverage.md
+  - 执行覆盖摘要
   - 自动/人工验证证据
 - 偏差 / 后续事项：
   - <没有则写 无>

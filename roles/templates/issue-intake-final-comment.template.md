@@ -24,12 +24,11 @@
   - <没有则写 无>
 - 文档集合：
   - `init-params`: <issue 链接 @ rev-N>
-  - `tracking-block`: <issue 链接 @ rev-N>
-  - `requirement-entry:<REQ-id>`: <issue 链接 @ rev-N | 无>
-  - `roadmap-entry:<phase-id>`: <issue 链接 @ rev-N | 无>
-  - <继续列出同类文档，不能省略多份文档>
+  - `phase:<phase-id | unknown>`: <issue 链接 @ rev-N | 无>
+  - `phase-section:tracking-summary`: <已更新 | 无>
+  - `phase-section:requirement-summary`: <已更新 | 无>
 - 最新正文节点：
-  - <文档类型 -> issue 链接 @ rev-N (latest)>
+  - <phase-issue -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：

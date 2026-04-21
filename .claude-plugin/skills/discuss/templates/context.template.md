@@ -1,7 +1,7 @@
 # Context Template
 
 > 用途：为 `context.md` 提供统一结构。  
-> 目标：把 discuss 阶段形成的边界、决策和参考输入整理成下游工作副本；在 `multica + github` 下，跨轮次 authoritative 正文仍应落到对应文档子 issue body。
+> 目标：把 discuss 阶段形成的边界、决策和参考输入整理成下游工作副本；在 `multica + github` 下，跨轮次 authoritative 正文仍应落到对应文档 issue body / section。
 
 ## 模板
 

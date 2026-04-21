@@ -6,9 +6,11 @@
 - 角色：<PACE-...>
 - 阶段：<阶段编号或 n/a>
 - 当前步骤：<tracking-init(追踪初始化) | intake(接收) | discuss(讨论) | plan(计划) | execute(执行) | verify(验证) | archive(归档)>
-- 文档类型：<tracking-block | requirement-entry | roadmap-entry | discussion-log | context | coverage | plan-file | execution-log | run-summary | verification | archive-entry>
+- 文档类型：<init-params | phase-issue>
 - 主 Issue：<https://github.com/owner/repo/issues/123>
 - 文档 Issue：<https://github.com/owner/repo/issues/456>
+- 文档 Key：<init-params | phase-01 | phase-02>
+- 文档 Section：<无 | tracking-summary | requirement-summary | context | discussion-log | plan | execution | verification | archive-status>
 - 正文修订号：<rev-1>
 - 源文件：
   - `<仓库内路径>`

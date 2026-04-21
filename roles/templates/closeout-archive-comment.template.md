@@ -13,14 +13,14 @@
 - 执行分支：<branch | 无>
 - 归档结果：<已归档 | 已重新打开>
 - 验证来源：
-  - `verification.md`
+  - `phase-section:verification`
 - 已归档产物：
   - <归档路径 / 包含的产物>
 - 文档集合：
-  - `archive-entry`: <issue 链接 @ rev-N>
-  - <继续列出相关归档文档；没有则写 无>
+  - `phase:<phase-id>`: <issue 链接 @ rev-N>
+  - `phase-section:archive-status`: <已更新 | 无>
 - 最新正文节点：
-  - <文档类型 -> issue 链接 @ rev-N (latest)>
+  - <phase-issue -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：

@@ -48,6 +48,11 @@ description: 初始化轻量 workflow 的最小真相源，识别 greenfield 或
 5. 写 `requirements.md`
 6. 写最小 `roadmap seed`
 7. 写 `state.md`
+8. 若当前是 `multica + github`：
+   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+   - 至少同步 `init-params` 与当前 phase 对应的 phase 文档 issue
+   - phase 文档 issue 默认使用 `doc-key = phase-<NN>`，并通过 `--section requirement-summary` 写入 bootstrap 产出的最小 requirement / roadmap seed 摘要
+   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 bootstrap 完成
 
 ## 输出要求
 

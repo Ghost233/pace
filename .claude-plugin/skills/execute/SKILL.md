@@ -25,7 +25,7 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 更新 `.pace/state.md`
 - 将 run summaries 写入 `.pace/phases/<phase>/runs/`
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数文档 issue、对应 phase 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 execute
 - 默认按 wave 并行执行，以下情况串行：
   - 两个 plan 修改同一文件
   - 两个 plan 有显式 Depends On 关系
@@ -56,8 +56,8 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 - 每个已执行 plan 对应一份 run summary
 - 更新后的 coverage.md
 - 更新后的 state.md
-- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
-- `multica + github` 下，还必须产出对应的文档同步动作：execution-log / run summary / coverage 的文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
+- `multica + github` 下，上述稳定正文只有在同步到对应文档 issue 的 body / section，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：execution-log / run summary / coverage 的文档 issue body / section 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 ## 执行流程
 
@@ -133,17 +133,18 @@ description: 通过子代理执行轻量 workflow 中的 phase plans，主代理
 ### 7. GitHub 文档层同步（仅 `multica + github`）
 
 - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
+- 默认使用当前 phase 的 `doc-key = phase-<NN>`，并通过 `--section` 更新对应 section
 - 再分别执行 `upsert-doc` 同步：
-  - `execution-log`
-  - 每份 `run-summary:<file>`
-  - `coverage`
+  - `execution-log` -> `--section execution`
+  - 每份 run summary 的聚合结果 -> `--section execution`
+  - `coverage` 执行进展 -> `--section execution`
 - 每次 `upsert-doc` 如有执行摘要、重试说明或验证结果，配套写审计 comment
 - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 execute 完成
 - 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
 
 ## Execution Log 标准
 
-`execution-log.md` 是当前工作区中的执行缓存与短期外部记忆，不是 `multica + github` 下的跨轮次真相源。跨轮次重入时，仍必须先从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复，再把它重新水合到本地工作区。
+`execution-log.md` 是当前工作区中的执行缓存与短期外部记忆，不是 `multica + github` 下的跨轮次真相源。跨轮次重入时，仍必须先从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数文档 issue、各 phase 文档 issue 恢复，再把它重新水合到本地工作区。
 
 文件结构：
 

@@ -152,6 +152,16 @@ function parseNumberFromUrl(url, marker) {
   return match ? Number(match[1]) : null;
 }
 
+function parseGitHubIssueUrl(url) {
+  if (!url) return null;
+  const match = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)(?:[/?#].*)?$/);
+  if (!match) return null;
+  return {
+    repo: match[1],
+    number: Number(match[2]),
+  };
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -217,6 +227,14 @@ function buildConfig(mode, options) {
       throw new Error(
         `multica 模式缺少必填参数:\n- ${missing.join('\n- ')}\n请一次性补齐后重试，不要逐项猜测或回填本地 git/gh 状态。`
       );
+    }
+
+    const parsedIssue = parseGitHubIssueUrl(issueUrl);
+    if (!parsedIssue) {
+      throw new Error('--issue-url 必须是合法的 GitHub issue URL');
+    }
+    if (parsedIssue.repo !== repo) {
+      throw new Error(`--issue-url 不属于当前 --repo: ${parsedIssue.repo} !== ${repo}`);
     }
   }
 

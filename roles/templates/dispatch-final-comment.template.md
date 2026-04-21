@@ -12,7 +12,7 @@
 - 执行分支：<branch | 无>
 - 当前问题类型：<新需求 | 阶段变更 | 执行阻塞 | 验收回退 | 未知>
 - 使用证据：
-  - <追踪块 / 最新阶段 comment / 文档 root issue / 初始化参数 issue / 文档 issue body / verification.md / 状态冲突>
+  - <追踪块 / 最新阶段 comment / 文档 root issue / 初始化参数 issue / phase issue body/section / verification section / 状态冲突>
 - 当前结论：<为什么判定为这个下一角色，或为什么不能判定>
 - 终态：<handoff | needs_user_input | closed>
 - handoff：<PACE-初始化经理 | PACE-需求接管经理 | PACE-阶段经理 | PACE-交付经理 | PACE-验收归档经理 | Owner Skill:<skill> | 无>

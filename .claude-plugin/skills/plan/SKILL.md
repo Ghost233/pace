@@ -20,7 +20,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 - 如果存在，读取 `.pace/phases/<phase>/context.md`
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 如果存在，读取 `.pace/codebase/`
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数子 issue、各文档子 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 plan
+- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数文档 issue、对应 phase 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 plan
 - plans 写入 `.pace/phases/<phase>/plans/`
 - 保留 planner + checker 的两层结构
 
@@ -28,8 +28,8 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 
 - `.pace/phases/<phase>/plans/` 下的一份或多份计划文件
 - checker 的修订结果，直接回写到 plans 或单独写一个简短 review note
-- `multica + github` 下，上述稳定正文只有在同步到对应文档子 issue 的 body，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
-- `multica + github` 下，还必须产出对应的文档同步动作：plan 文档子 issue body 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
+- `multica + github` 下，上述稳定正文只有在同步到对应文档 issue 的 body / section，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
+- `multica + github` 下，还必须产出对应的文档同步动作：plan 对应文档 issue body / section 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -51,7 +51,11 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 6. 若 verdict = split，停止当前 plan 编写并路由 `pace:roadmap`
 7. 若 verdict = pass，且当前是 `multica + github`，必须立即执行文档层同步：
    - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
-   - 再分别执行 `upsert-doc` 同步 `coverage`、每份 `plan-file`、必要时的 checker review note 到对应文档子 issue body
+   - 默认使用当前 phase 的 `doc-key = phase-<NN>`，并通过 `--section` 更新对应 section
+   - 再分别执行 `upsert-doc` 同步：
+     - `coverage` 摘要 -> `--section plan`
+     - 每份 `plan-file` 的聚合结果 -> `--section plan`
+     - checker review note -> `--section plan`
    - 每次 `upsert-doc` 如有修订摘要，配套写审计 comment
    - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 plan 完成
    - 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`

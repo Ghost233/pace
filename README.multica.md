@@ -20,19 +20,22 @@
 1. 必须先读取 `tracker.type`，再判断当前工作的真相源。
 2. 当 `tracker.type = github` 时，跨轮次真相源分成两层：
    - 主 issue 的追踪块与阶段结论 comment
-   - 文档 root issue、初始化参数子 issue、各文档子 issue 的最新版 body 与审计 comment
+   - 文档 root issue、初始化参数文档 issue、各 phase 文档 issue 的最新版 body 与审计 comment
    `.pace/` 只是当前工作区的本地产物，不保证下轮还在。
 3. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须进入 GitHub 文档层；不能只同步 handoff 摘要。
 4. Multica issue 是流程入口和协作面。
-5. GitHub 主 issue 是阶段状态时间线与总入口；GitHub 文档 root issue 负责索引；各文档子 issue 负责正文持久层。
-6. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
-7. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
-8. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
-9. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
-10. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
-11. 如果流程会产出 multica issue 读取、评论、状态变更或角色切换，推荐只使用 `pace-multica`，不要直接运行原生 `multica issue ...`
-12. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
-13. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
+5. GitHub 主 issue 是阶段状态时间线与总入口；GitHub 文档 root issue 负责索引；初始化参数文档 issue 负责恢复参数；各 phase 文档 issue 负责 phase 级正文持久层。
+6. 文档之间只通过“主 issue 的受控索引 comment + 文档 root issue 的索引正文 / JSON + 文档 issue URL”关联；不依赖 GitHub 原生 `sub-issue / parent-issue` 功能。
+7. 如果索引层发生冲突，优先级固定为：文档 root issue 的 JSON 索引 > 初始化参数文档 issue / 各 phase 文档 issue 正文 > 主 issue 的受控索引 comment。
+8. 主 issue 的受控索引 comment 是首选入口，但不是唯一入口；如果它缺失、损坏或漂移，允许从文档 root issue 的 JSON 索引反查恢复，并自动补回该 comment。
+9. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
+10. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
+11. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
+12. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
+13. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
+14. 如果流程会产出 multica issue 读取、评论、状态变更或角色切换，推荐只使用 `pace-multica`，不要直接运行原生 `multica issue ...`
+15. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+16. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -44,7 +47,7 @@
 2. 从 GitHub issue URL 解析目标仓库
 3. 执行 `multica repo checkout <repo-url>`，把目标仓库 checkout 到当前工作目录
 4. 切换到目标仓库根目录
-5. 切换到本轮目标分支；若当前主 issue 已有初始化参数子 issue，则以其中声明的 `git.branch` 为准；若是首次进入，则以当前显式提供给 `pace-init.js` 的 `--branch` 为准
+5. 切换到本轮目标分支；若当前主 issue 已有初始化参数文档 issue，则以其中声明的 `git.branch` 为准；若是首次进入，则以当前显式提供给 `pace-init.js` 的 `--branch` 为准
 
 只有以上五步都完成后，才允许开始任何角色的“首步动作”。
 
@@ -254,15 +257,20 @@ gh auth switch -u <tracker.github.username>
 `pace-issue-doc` 负责 issue 文档层：
 
 - 先为主 issue 创建或复用一个文档 root issue，例如 `issue-54-doc`
-- 初始化参数也要作为一个标准子文档 issue 保存，而不是只散落在 session 或 comment 中
-- 初始化参数子文档里必须包含执行仓库地址与执行分支
-- 用子 issue body 保存最新版文档
+- 初始化参数也要作为一个标准文档 issue 保存，而不是只散落在 session 或 comment 中
+- 初始化参数文档 issue 里必须包含执行仓库地址与执行分支
+- 推荐收敛成 `2 + N`：主 issue + 文档 root issue + 初始化参数文档 issue + 每个 phase 一个文档 issue
+- phase 内的 `tracking / context / plan / execution / verification / archive` 推荐合并到同一个 phase 文档 issue 的不同 section，而不是继续“一文一 issue”
+- `pace-issue-doc upsert-doc --section <key>` 已支持按 section 更新 phase 文档 issue；其余 roles / skills 仍应继续向这版协议收敛
+- 用文档 issue body 保存最新版文档
 - 用 comment 追加审计记录
 - 默认限制 body 小于 `60000` 字符
-- 创建或更新文档后，会自动把文档 root issue 与子文档索引回填到主 issue 的受控 comment
+- 创建或更新文档后，会自动把文档 root issue 与文档索引回填到主 issue 的受控 comment
+- 文档层恢复与定位只依赖主 issue 的受控索引 comment、文档 root issue 的索引正文 / JSON、初始化参数文档 issue 与各 phase 文档 issue URL；不要依赖 GitHub 原生 sub-issue 关系
+- 若主 issue 的受控索引 comment 缺失、损坏或漂移，应允许从文档 root issue 的 JSON 索引反查恢复，并以该 JSON 为准重新回填主 issue 的受控索引 comment
 - 在 `multica + github` 下，不要直接使用 `create-doc` / `update-body` 这种低层正文命令绕过索引回填
 - 交接模板必须列出当前文档集合；若正文滚动到新文档 issue，也必须把滚动链写进模板字段
-- 从这里开始，正式协议只有这一套：主 issue comment + 文档 root issue + 初始化参数子 issue + 文档 issue body/comment；不要再把“全文镜像日志 comment”当成另一套并行协议
+- 从这里开始，正式协议只有这一套：主 issue comment + 主 issue 受控索引 comment + 文档 root issue + 初始化参数文档 issue + phase 文档 issue body/comment；不要再把“全文镜像日志 comment”当成另一套并行协议
 
 ## 角色设计
 
@@ -292,7 +300,7 @@ gh auth switch -u <tracker.github.username>
 - 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 初始化
 - 除 `PACE-需求接管经理` 的首次接管外，其余角色在本轮开始前都应先通过 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue <main-issue>` 读取主 issue 对应的初始化参数，再调用 `pace-init.js`
 - `resolve-init` 默认直接输出一条可执行的 `pace-init.js multica ...` 命令；如需机器消费，可改用 `--format args` 或 `--format json`
-- 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数子 issue
+- 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数文档 issue
 - 首次进入时，“当前已知参数”只允许来自：multica issue / GitHub issue 中已经明确给出的初始化参数、外部编排器显式传入的参数、以及当前轮用户补充；禁止从本地 git/gh 状态猜测补齐
 - 本地 `gh auth status`、`gh api user`、`git config` 只允许校验当前机器状态，不允许拿来补齐缺失的 `pace-init.js` 参数
 - 若 `pace-init.js` 报缺参，必须按脚本列出的缺失清单一次性向用户索取，不要逐个试错
@@ -313,16 +321,16 @@ PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
    产物：`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`、必要时 `.pace/codebase/`
 2. `PACE-需求接管经理`
    条件：issue 尚无追踪块或 GitHub issue URL
-   产物：tracking block、tracking-init comment、归类结果、文档 root issue、初始化参数子 issue、追踪相关文档 issue
+   产物：tracking block、tracking-init comment、归类结果、文档 root issue、初始化参数文档 issue、追踪相关文档 issue
 3. `PACE-阶段经理`
    条件：requirement 信息已接管，但 `context.md` 或 checker 通过的 `plans/` 尚未齐备
-   产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、主 issue 阶段 comment、对应文档 issue body 与审计 comment
+   产物：`requirements.md`、`context.md`、`discussion-log.md`、`coverage.md`、`plans/`、主 issue 阶段 comment、对应 phase 文档 issue body / section 与审计 comment
 4. `PACE-交付经理`
-   条件：checker 通过的 `plans/` 已存在，且 `execution-log.md` 尚未完成
-   产物：`execution-log.md`、`runs/`、`coverage.md`、execute comment、执行文档 issue body 与审计 comment
+   条件：checker 通过的 `plans/` 已存在，且当前 phase 的 `execution` section 尚未完成
+   产物：执行阶段摘要、`runs/`、执行覆盖摘要、execute comment、对应 phase 文档 issue body / section 与审计 comment
 5. `PACE-验收归档经理`
    条件：执行已完成，进入 verify/archive
-   产物：`verification.md`、archive comment、归档结论、验证/归档文档 issue body 与审计 comment
+   产物：验证结论、archive comment、归档结论、对应 phase 文档 issue body / section 与审计 comment
 
 tech phase 的闭环单独处理：
 
@@ -482,10 +490,9 @@ pace:execute
    - 出现 blocker 或需要回退
    - execute 完成
 5. 同步以下执行文档到 GitHub 文档层：
-   - `execution-log.md`
-   - 每个 `run summary`
-   - execute 阶段更新后的 `coverage.md`
-   - 规则：最新版正文写入文档 issue body，更新记录写成审计 comment
+   - 当前 phase 文档 issue 的 `execution` section
+   - 其中聚合 `execution-log`、`run summary` 与 execute 阶段 `coverage` 摘要
+   - 规则：最新版正文写入 phase 文档 issue 的 `execution` section，更新记录写成审计 comment
 
 comment 重点写：
 
@@ -529,9 +536,9 @@ GitHub issue 上至少补两条最终 comment：
 
 同时必须同步以下文档：
 
-- `verification.md`
+- 当前 phase 文档 issue 的 `verification` section
 - `.pace/archive/index.md` 中当前 phase 对应条目
-- 规则：最新版正文写入文档 issue body，更新记录写成审计 comment
+- 规则：最新版正文写入 phase 文档 issue 的 `verification` section，更新记录写成审计 comment
 
 角色最终 comment 模板：
 
@@ -583,21 +590,18 @@ Multica 新建标准 issue
 下面这些稳定文档也必须进入 GitHub 文档层：
 
 1. `init-params`
-2. `tracking block`
-3. intake 影响到的 `requirements.md` / `roadmap.md` 条目
-4. `discussion-log.md`
-5. `context.md`
-6. `coverage.md`
-7. 全部 plan 文件
-8. `execution-log.md`
-9. 全部 `run summary`
-10. `verification.md`
-11. 当前 phase 的 archive 条目
+2. 当前 phase 文档 issue中的 `tracking-summary`
+3. 当前 phase 文档 issue中的 `requirement-summary`
+4. 当前 phase 文档 issue中的 `context`
+5. 当前 phase 文档 issue中的 `discussion-log`
+6. 当前 phase 文档 issue中的 `plan`
+7. 当前 phase 文档 issue中的 `execution`
+8. 当前 phase 文档 issue中的 `verification`
+9. 当前 phase 文档 issue中的 `archive-status`
 
-中间阶段 comment 与 tracking block 可以用：
+中间阶段 comment 与审计信息可以用：
 
 - [`roles/templates/github-issue-comment.template.md`](roles/templates/github-issue-comment.template.md)
-- [`roles/templates/tracking-block.template.md`](roles/templates/tracking-block.template.md)
 - [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
 
 最终 handoff / closeout comment 不要复用通用模板，必须使用上面的按角色模板。
@@ -609,7 +613,7 @@ multica 模式下，本轮执行先读：
 
 1. `.pace/session.yaml`
 2. GitHub 主 issue 的追踪块与阶段结论 comment
-3. GitHub 文档 root issue、初始化参数子 issue与文档 issue 的最新版 body 与审计 comment
+3. GitHub 文档 root issue、初始化参数文档 issue与 phase 文档 issue 的最新版 body 与审计 comment
 4. `.pace/` 阶段产物
 
 唯一判定规则：
@@ -617,8 +621,8 @@ multica 模式下，本轮执行先读：
 - `.pace/session.yaml` 只负责本轮 config + context
 - 主 issue comment 只负责阶段状态、handoff、closeout
 - 文档 root issue 只负责索引
-- 初始化参数子 issue 只负责后续角色复用的初始化参数
-- 文档 issue body 只负责最新版稳定正文
+- 初始化参数文档 issue 只负责后续角色复用的初始化参数
+- phase 文档 issue body 只负责该 phase 的最新版稳定正文
 - 文档 issue comment 只负责正文更新审计
 - `.pace/` 只负责本轮工作区缓存副本
 - 任何跨轮次冲突都按这条优先级处理：
@@ -634,14 +638,14 @@ multica 模式下，本轮执行先读：
 
 同步规则：
 
-1. 最新版正文写入对应文档 issue 的 body，优先通过 `pace-issue-doc upsert-doc`
+1. 最新版正文写入对应 phase 文档 issue 的 body，优先通过 `pace-issue-doc upsert-doc`
 2. 每次正文更新后，必须追加一条审计 comment
 3. 审计 comment 必须使用 [`roles/templates/stage-log-sync-comment.template.md`](roles/templates/stage-log-sync-comment.template.md)
 4. 审计 comment 只记录来源文件、文档类型、修订号、变更摘要，不再承担全文镜像
-5. 单个文档 issue 的 body 默认限制 `60000` 字符
-6. 超过限制时，必须创建新的文档 issue，更新主 issue 或交接 comment 中的索引
+5. 单个 phase 文档 issue 的 body 默认限制 `60000` 字符
+6. 超过限制时，必须创建新的 phase 文档 issue，更新主 issue 或交接 comment 中的索引
 7. 最终 handoff comment 只能引用这些文档 issue / 审计 comment，不能替代正文
-8. 上面这组规则就是唯一正式协议；主 issue comment、文档 root issue、初始化参数子 issue与文档 issue body/comment 之外，不再定义第二套并行持久化协议
+8. 上面这组规则就是唯一正式协议；主 issue comment、主 issue 受控索引 comment、文档 root issue、初始化参数文档 issue与 phase 文档 issue body/comment 之外，不再定义第二套并行持久化协议
 
 ## 一条完整示例
 
@@ -650,13 +654,13 @@ multica 模式下，本轮执行先读：
 2. 如果当前仓库工作区未就绪，先交给 PACE-初始化经理
 3. 工作区就绪后，分配给 PACE-需求接管经理
 4. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
-5. 它写追踪初始化 comment，确保存在文档 root issue 与初始化参数子 issue，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
+5. 它写追踪初始化 comment，确保存在文档 root issue 与初始化参数文档 issue，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
 6. PACE-阶段经理 依次跑 pace:intake / pace:discuss / pace:plan
 7. plan ready 后，handoff 给 PACE-交付经理
-8. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment，同时更新执行文档 issue
+8. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment，同时更新当前 phase 文档 issue
 9. 执行完成后，handoff 给 PACE-验收归档经理
 10. PACE-验收归档经理 跑 pace:verify / pace:archive
-11. GitHub 主 issue 留下最终验收与归档 comment，相关文档 issue 留下最新版正文与审计记录，流程结束
+11. GitHub 主 issue 留下最终验收与归档 comment，相关 phase 文档 issue 留下最新版正文与审计记录，流程结束
 ```
 
 ## 日常使用规则

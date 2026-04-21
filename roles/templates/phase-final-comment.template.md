@@ -17,16 +17,17 @@
 - 已锁定决策：
   - <D-01 summary>
 - 已就绪产物：
-  - `context.md`
-  - `coverage.md`
-  - `plans/<file>.md`
+  - `phase-section:context`
+  - `phase-section:discussion-log`
+  - `phase-section:plan`
 - 文档集合：
-  - `context`: <issue 链接 @ rev-N>
-  - `coverage`: <issue 链接 @ rev-N>
-  - `plan-file:<file>`: <issue 链接 @ rev-N>
-  - <继续列出全部 plan-file / requirement-entry / roadmap-entry 文档>
+  - `phase:<phase-id>`: <issue 链接 @ rev-N>
+  - `phase-section:context`: <已更新 | 无>
+  - `phase-section:discussion-log`: <已更新 | 无>
+  - `phase-section:plan`: <已更新 | 无>
+  - `phase-section:requirement-summary`: <已更新 | 无>
 - 最新正文节点：
-  - <文档类型 -> issue 链接 @ rev-N (latest)>
+  - <phase-issue -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：
@@ -42,8 +43,8 @@
 - 下一技能：<pace:execute | pace:discuss | pace:plan | Owner Skill:<skill> | 无>
 - 恢复角色：<PACE-阶段经理 | 无>
 - 下一阶段必需输入：
-  - 计划文件列表
-  - 覆盖项与计划的映射
+  - phase-section:plan
+  - 覆盖项摘要与计划映射
   - 已锁定决策
   - 验证预期
 - 剩余风险：

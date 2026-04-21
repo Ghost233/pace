@@ -51,7 +51,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 询问用户：
 
 - **本地** — 所有工作日志保存在 `.pace/` 目录，不依赖外部服务
-- **GitHub Issues** — 将阶段状态写到主 issue，将文档索引写到文档 root issue，将初始化参数写到专门的初始化参数子 issue，将稳定正文写到各文档子 issue
+- **GitHub Issues** — 将阶段状态写到主 issue，将文档索引写到文档 root issue，将初始化参数写到专门的初始化参数文档 issue，将稳定正文写到文档 issue（推荐按 phase issue + section 收敛）
 
 ### 第二步补充：选择执行模式
 
@@ -162,7 +162,7 @@ description: 交互式配置 pace 工作区，包括追踪方式（本地/GitHub
 如果当前已经有主 issue URL，则在 `pace-init.js` 成功后，初始化流程还必须继续：
 
 - 立即执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue-url>`
-- 确保文档 root issue、初始化参数子 issue、主 issue 的受控索引 comment 全部存在
+- 确保文档 root issue、初始化参数文档 issue、主 issue 的受控索引 comment 全部存在
 - 若 `ensure-root` 失败，立即停止；不能只保留本地 `.pace/session.yaml`
 - 只有这一步完成后，才算 `multica + github` 的 GitHub 文档层初始化完成
 
@@ -198,8 +198,8 @@ git 身份：{config.git.name} <{config.git.email}>
 - 也必须明确告诉后续角色：所有 git 提交都要使用 `git.name` 和 `git.email`
 - 不允许落盘不支持的模式组合
 - `multica + github` 模式下，必须显式收集并传入 `repo`、`branch`、`github-user`
-- `multica + github` 模式下，后续角色复用的初始化参数必须落到专门的初始化参数子 issue，而不是只留在本地 session
-- `multica + github` 模式下，主 issue 的受控索引 comment 必须回填文档 root issue 与子文档索引
+- `multica + github` 模式下，后续角色复用的初始化参数必须落到专门的初始化参数文档 issue，而不是只留在本地 session
+- `multica + github` 模式下，主 issue 的受控索引 comment 必须回填文档 root issue 与文档索引
 - `multica + github` 模式下，若当前已有主 issue URL，最小流程必须包含 `ensure-root`；不能只停在本地 `.pace/session.yaml`
 
 ## 后续路由

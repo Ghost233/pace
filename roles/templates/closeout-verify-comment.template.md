@@ -18,13 +18,13 @@
 - 需求覆盖：
   - <REQ-001 - 通过(pass) / 失败(fail)>
 - 证据：
-  - `verification.md`
+  - `phase-section:verification`
   - <测试 / 运行记录 / 计划文件>
 - 文档集合：
-  - `verification`: <issue 链接 @ rev-N>
-  - <继续列出相关验证文档；没有则写 无>
+  - `phase:<phase-id>`: <issue 链接 @ rev-N>
+  - `phase-section:verification`: <已更新 | 无>
 - 最新正文节点：
-  - <文档类型 -> issue 链接 @ rev-N (latest)>
+  - <phase-issue -> issue 链接 @ rev-N (latest)>
 - 文档滚动链：
   - <没有则写 无>
 - 审计 Comment：
