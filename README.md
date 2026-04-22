@@ -293,16 +293,19 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
 ```
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
-在 `multica` 模式下，执行仓库地址和执行分支都必须显式提供。
+在 `multica` 模式下，GitHub 用户、执行仓库地址、执行分支、`git.name`、`git.email` 都必须先有显式来源。
+首次接管时，这 5 个值只能来自当前轮用户手动输入；后续角色重入时，才允许来自已存在的初始化参数文档。
+不能从 issue 正文、外部编排器参数、本地 `gh` / `git config` 推断、抄回或补齐成用户输入。
+其中 `github_user` 用于绑定仓库 checkout / GitHub 访问所使用的指定账号，不是一个可省略的展示字段。
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
 `pace-merge` 只用于排查模板值，不是正常流程的必经步骤。
 
 统一初始化原则：
 
 - 不管是 `local` 还是 `multica`，进入正式流程前的第一步都应调用 `pace-init.js`
-- 由 `pace-init.js` 自己决定缺少哪些参数、是否允许继续
+- `pace-init.js` 负责 CLI 层缺参校验；对于 `multica` 的首次 issue 接管，角色协议还要求 `github_user / repo / branch / git.name / git.email` 先由用户手动输入
 - 如果 `pace-init.js` 失败，必须立即停止，不能跳过到后续 skill / role
-- roles / skills / README 不再各自维护另一套参数必填清单
+- 除首次 issue 接管必须要求的显式来源约束外，不要在 roles / skills / README 里再发明另一套与 `pace-init.js` 冲突的必填逻辑
 
 受限 git 入口：
 

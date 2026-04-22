@@ -35,11 +35,11 @@ function usage() {
       '',
       '自动探测规则:',
       '  --repo         multica 模式必填；local 模式忽略。',
-      '  --branch       multica 模式必填；local 模式未传时，尝试读取当前 git 分支。',
+      '  --branch       multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取当前 git 分支。',
       '  --base-branch  未传时，尝试读取 `origin/HEAD`，失败则回退为 `main`。',
-      '  --github-user  multica 模式必填；local 模式未传则保留为空。',
-      '  --git-name     未传时，尝试读取 `git config user.name`。',
-      '  --git-email    未传时，尝试读取 `git config user.email`。',
+      '  --github-user  multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；它表示仓库 checkout / GitHub 访问使用的指定用户名；local 模式未传则保留为空。',
+      '  --git-name     multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取 `git config user.name`。',
+      '  --git-email    multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取 `git config user.email`。',
       '  --pr-url       未传时，保留为空。',
       '',
       'multica 模式必须显式传入:',
@@ -191,8 +191,12 @@ function buildConfig(mode, options) {
     ? (options.repo || '')
     : '';
 
-  const gitName = options['git-name'] || probe('git', ['config', 'user.name']) || config.git?.name || '';
-  const gitEmail = options['git-email'] || probe('git', ['config', 'user.email']) || config.git?.email || '';
+  const gitName = mode === 'multica'
+    ? (options['git-name'] || '')
+    : (options['git-name'] || probe('git', ['config', 'user.name']) || config.git?.name || '');
+  const gitEmail = mode === 'multica'
+    ? (options['git-email'] || '')
+    : (options['git-email'] || probe('git', ['config', 'user.email']) || config.git?.email || '');
   const loginProbe = mode === 'multica'
     ? (options['github-user'] || '')
     : '';
@@ -214,7 +218,7 @@ function buildConfig(mode, options) {
     if (!currentRole) missing.push('--current-role');
     if (missing.length > 0) {
       throw new Error(
-        `multica 模式缺少必填参数:\n- ${missing.join('\n- ')}\n请一次性补齐后重试，不要逐项猜测或回填本地 git/gh 状态。`
+        `multica 模式缺少必填参数:\n- ${missing.join('\n- ')}\n请一次性补齐后重试，不要逐项猜测或回填本地 git/gh 状态；首次接管时 --github-user、--repo、--branch、--git-name、--git-email 必须由用户手动输入。`
       );
     }
 
