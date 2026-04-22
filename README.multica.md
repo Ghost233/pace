@@ -329,7 +329,7 @@ PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
    条件：checker 通过的 `plans/` 已存在，且当前 phase 的 `execution` section 尚未完成
    产物：执行阶段摘要、`runs/`、执行覆盖摘要、execute comment、对应 phase 文档 issue body / section 与审计 comment
 5. `PACE-验收归档经理`
-   条件：执行已完成，进入 verify/archive
+   条件：当前 phase 为 `requirement`，且执行已完成，进入 verify/archive
    产物：验证结论、archive comment、归档结论、对应 phase 文档 issue body / section 与审计 comment
 
 tech phase 的闭环单独处理：
@@ -407,12 +407,17 @@ tech phase 的闭环单独处理：
 
 这个角色负责第一次接管 issue。
 
+它不等于 `pace:intake`。
+它负责 issue 首次接管、`tracking-init`、追踪块与 GitHub 文档链起步；真正的 `pace:intake` 由 `PACE-阶段经理` 视 requirement 信息是否齐备来决定是否执行。
+
 它必须完成：
 
 1. 检查当前 issue 是否已有 GitHub issue URL。
 2. 如果 `tracker.type = github` 且没有 URL，则创建 GitHub issue。
 3. 把 GitHub issue URL 回填到当前 multica issue 的元数据或描述中。
-4. 建立追踪块，至少包含：
+4. 建立追踪块，必须直接使用：
+   [`roles/templates/tracking-block.template.md`](roles/templates/tracking-block.template.md)
+   至少包含：
    `GitHub Issue / Current Stage / Current Step / Current Role / Last Synced At`
 5. 写第一条追踪初始化 comment 到 GitHub 主 issue。
 6. 第一轮必须明确告诉用户：
@@ -439,14 +444,16 @@ tech phase 的闭环单独处理：
 这个角色负责：
 
 ```text
-pace:intake -> pace:discuss -> pace:plan
+[按条件执行 pace:intake] -> pace:discuss -> pace:plan
 ```
 
-执行顺序固定为：
+默认顺序是：
 
-1. `pace:intake`
-2. `pace:discuss`
-3. `pace:plan`
+1. requirement 字段不完整时，先执行 `pace:intake`
+2. 再执行 `pace:discuss`
+3. 最后执行 `pace:plan`
+
+如果 requirement ID、目标、非目标、phase 归属、成功标准、外部依赖这 6 项已经齐备，则可以跳过 `pace:intake`，直接进入 `pace:discuss`。
 
 它要完成的事情：
 
@@ -512,7 +519,7 @@ comment 重点写：
 
 ### 阶段 6：PACE-验收归档经理
 
-这个角色负责：
+这个角色只处理 requirement phase 的：
 
 ```text
 pace:verify -> pace:archive
@@ -528,6 +535,8 @@ pace:verify -> pace:archive
    - archived
    - reopen execute
    - reopen phase
+
+如果需要执行 `reopen execute`、`reopen phase` 或显式放弃当前 phase，统一通过 `pace:recover` 落成，不要手写 state 回滚或直接删 archive 产物。
 
 GitHub issue 上至少补两条最终 comment：
 
@@ -574,6 +583,8 @@ Multica 新建标准 issue
 - 范围不清或需求变化：`PACE-交付经理 -> PACE-阶段经理`
 - 验收失败但 scope 不变：`PACE-验收归档经理 -> PACE-交付经理`
 - 验收失败且 plan 失真：`PACE-验收归档经理 -> PACE-阶段经理`
+- 已归档 phase 需要重开：使用 `pace:recover`
+- 用户长时间未回复或当前 session 中断：保持当前角色为 `resume_role`，恢复后先从 GitHub 文档链恢复，再继续当前角色或 skill；不要空白等待，也不要擅自 `closed`
 
 ## GitHub 同步要求
 
@@ -655,7 +666,7 @@ multica 模式下，本轮执行先读：
 3. 工作区就绪后，分配给 PACE-需求接管经理
 4. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
 5. 它写追踪初始化 comment，确保存在文档 root issue 与初始化参数文档 issue，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
-6. PACE-阶段经理 依次跑 pace:intake / pace:discuss / pace:plan
+6. PACE-阶段经理 先判断 requirement 字段是否齐备；若不齐再跑 pace:intake，然后继续 pace:discuss / pace:plan
 7. plan ready 后，handoff 给 PACE-交付经理
 8. PACE-交付经理 跑 pace:execute，并持续写执行进展 comment，同时更新当前 phase 文档 issue
 9. 执行完成后，handoff 给 PACE-验收归档经理

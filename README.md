@@ -24,6 +24,16 @@
 curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | bash
 ```
 
+如果你要固定到某个 tag 或自定义归档地址，推荐这样执行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | \
+  PACE_INSTALL_REF_TYPE=tags PACE_INSTALL_REF=<tag> bash
+
+curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | \
+  PACE_INSTALL_ARCHIVE_URL=<tarball-url> bash
+```
+
 安装后，PACE 会被更新到用户目录，而不是项目目录：
 
 - skills → `~/.codex/skills/pace/`
@@ -59,6 +69,19 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-codex.sh | bash
 ```
+
+安装脚本会在替换 PACE 管理路径前，先把旧安装备份到：
+
+- `~/.codex/backups/pace/<timestamp>/`
+
+它只替换 PACE 管理的路径：
+
+- `skills/`
+- `bin/`
+- `.pace/`
+- `roles/`
+
+如果你之前在这些路径下塞过自定义文件，先从备份目录里检查和迁移，不要假设升级会保留它们。
 
 如果你要使用 GitHub 相关流程，例如：
 
@@ -164,9 +187,15 @@ intake → discuss → plan → execute → verify → archive
 | `pace:execute` | 通过子代理执行计划 |
 | `pace:verify` | 验证交付是否满足目标 |
 | `pace:archive` | 归档已完成的 phase |
+| `pace:recover` | 受控恢复 phase 状态，支持重开 archive、撤销验证结论或放弃当前 phase |
 | `pace:status` | 查看当前状态和下一步 |
 | `pace:roadmap` | 维护 phase 结构 |
 | `pace:milestone` | 管理 milestone 生命周期 |
+
+当前未纳入版本：
+
+- `pace-pr.js`
+- `pace-config` CLI
 
 ## 双层架构
 
@@ -181,10 +210,10 @@ PACE 现在推荐拆成两层：
 |------|------|
 | `PACE-调度经理` | 当当前状态不明确时先做分诊和路由，决定交给哪个角色；仍不确定时退回用户 |
 | `PACE-初始化经理` | 补齐 `.pace/` 工作区核心产物和代码地图，只负责 `bootstrap / map-codebase` 前置准备 |
-| `PACE-需求接管经理` | 新 issue 首次接管；补齐 GitHub issue 链接；建立追踪上下文 |
+| `PACE-需求接管经理` | 新 issue 首次接管；补齐 GitHub issue 链接；建立追踪上下文与 `tracking-init` |
 | `PACE-阶段经理` | 管 `intake → discuss → plan` 的阶段推进和边界收敛 |
 | `PACE-交付经理` | 管 `execute` 的分发、阻塞汇报和阶段交接 |
-| `PACE-验收归档经理` | 管 `verify → archive` 的验收、结案和收尾同步 |
+| `PACE-验收归档经理` | 管 requirement phase 的 `verify → archive` 验收、结案和收尾同步 |
 
 角色定义和模板位于 [`roles/`](roles/)。
 
@@ -193,6 +222,8 @@ PACE 现在推荐拆成两层：
 - `tech` phase 不走 roles 链路；它只由 roadmap 中声明的 `Owner Skill` 执行，然后进入 `pace:verify` 与 `pace:archive`
 - `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `status / verify / archive` 无法确定它是否完成
 - 若 `.pace/` 工作区核心产物缺失，必须先进入 `PACE-初始化经理`
+- `PACE-需求接管经理` 负责 issue 首次接管与 `tracking-init`，不等于 `pace:intake`
+- `pace:intake` 由 `PACE-阶段经理` 在 requirement 信息不完整时调用；若 requirement 字段已经齐备，可以直接进入 `pace:discuss`
 - `requirement` phase 才进入 `PACE-需求接管经理 → PACE-阶段经理 → PACE-交付经理 → PACE-验收归档经理`
 - `PACE-调度经理` 只在入口冲突、状态冲突或回退时使用，不是标准新 issue 的第一站
 

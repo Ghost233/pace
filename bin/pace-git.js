@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { execFileSync } = require('child_process');
+const { run } = require('./lib/exec');
 const { loadSession } = require('./lib/pace-config');
 const { ensureGithubSession } = require('./lib/github-cli');
 
@@ -42,12 +42,11 @@ function usage(exitCode = 0) {
 }
 
 function runGit(args, options = {}) {
-  return execFileSync('git', args, {
+  return run('git', args, {
     cwd: process.cwd(),
-    encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     ...options,
-  }).trimEnd();
+  });
 }
 
 function runGitWithSession(args, session, options = {}) {
@@ -113,7 +112,7 @@ function maybeEnsureGithubSwitch(session, { requireRepo = false } = {}) {
 
 function hasStagedChanges() {
   try {
-    execFileSync('git', ['diff', '--cached', '--quiet'], {
+    run('git', ['diff', '--cached', '--quiet'], {
       cwd: process.cwd(),
       stdio: 'ignore',
     });

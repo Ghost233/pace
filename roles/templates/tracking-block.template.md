@@ -1,4 +1,10 @@
-# 追踪块评论模板
+# 追踪块 / tracking-init 评论模板
+
+用于 `PACE-需求接管经理`：
+
+- 写入或更新追踪块快照
+- 生成第一条 `tracking-init` comment
+- 同步 tracking block 到 GitHub 文档层时保持字段结构稳定
 
 ```md
 ## 追踪信息

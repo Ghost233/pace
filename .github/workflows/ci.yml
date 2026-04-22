@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Check Install Script Syntax
+        run: bash -n bin/install-codex.sh
+
+      - name: Smoke Test Local Install
+        shell: bash
+        run: |
+          TMP_CODEX_HOME="$(mktemp -d)"
+          CODEX_HOME="$TMP_CODEX_HOME" \
+          PACE_INSTALL_SOURCE_DIR="$GITHUB_WORKSPACE" \
+          bash bin/install-codex.sh
+
+          test -f "$TMP_CODEX_HOME/skills/pace/bin/pace-init.js"
+          test -f "$TMP_CODEX_HOME/skills/pace/recover/SKILL.md"
+          test -f "$TMP_CODEX_HOME/skills/pace/roadmap/SKILL.md"

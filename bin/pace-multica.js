@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { ensureBinary, run } = require('./lib/exec');
 
 function usage(exitCode = 0) {
   const text = [
@@ -58,13 +58,13 @@ function parseArgs(argv) {
   return { command, options };
 }
 
-function run(args, options = {}) {
-  return execFileSync('multica', args, {
+function runMultica(args, options = {}) {
+  ensureBinary('multica', { message: 'multica 未安装，不能执行 multica 相关操作' });
+  return run('multica', args, {
     cwd: process.cwd(),
-    encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     ...options,
-  }).trimEnd();
+  });
 }
 
 function ensureIssue(issueId) {
@@ -87,7 +87,7 @@ function resolveBodyFile(filePath) {
 function commandIssueGet(options) {
   ensureIssue(options.issue);
   const output = options.output || 'json';
-  console.log(run(['issue', 'get', options.issue, '--output', output]));
+  console.log(runMultica(['issue', 'get', options.issue, '--output', output]));
 }
 
 function commandCommentList(options) {
@@ -96,7 +96,7 @@ function commandCommentList(options) {
   if (options.limit) {
     args.push('--limit', options.limit);
   }
-  console.log(run(args));
+  console.log(runMultica(args));
 }
 
 function commandCommentAdd(options) {
@@ -107,7 +107,7 @@ function commandCommentAdd(options) {
   if (options.parent) {
     args.push('--parent', options.parent);
   }
-  const output = run(args, { input: body });
+  const output = runMultica(args, { input: body });
   if (!options.__silent) {
     console.log(output);
   }
@@ -119,7 +119,7 @@ function commandStatus(options) {
   if (!options.value) {
     throw new Error('status 缺少 --value');
   }
-  console.log(run(['issue', 'status', options.issue, options.value]));
+  console.log(runMultica(['issue', 'status', options.issue, options.value]));
 }
 
 function commandAssign(options) {
@@ -128,7 +128,7 @@ function commandAssign(options) {
     throw new Error('assign 缺少 --to');
   }
   const output = options.output || 'json';
-  console.log(run(['issue', 'assign', options.issue, '--to', options.to, '--output', output]));
+  console.log(runMultica(['issue', 'assign', options.issue, '--to', options.to, '--output', output]));
 }
 
 function commandHandoff(options) {
@@ -146,10 +146,10 @@ function commandHandoff(options) {
       __silent: true,
     }) || '';
   }
-  const assignResult = run(['issue', 'assign', options.issue, '--to', options.to, '--output', options.output || 'json']);
+  const assignResult = runMultica(['issue', 'assign', options.issue, '--to', options.to, '--output', options.output || 'json']);
   let statusResult = '';
   if (options.status) {
-    statusResult = run(['issue', 'status', options.issue, options.status]);
+    statusResult = runMultica(['issue', 'status', options.issue, options.status]);
   }
   const payload = {
     issue: options.issue,

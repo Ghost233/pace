@@ -4,9 +4,13 @@ set -euo pipefail
 
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 PACE_HOME="$CODEX_HOME/skills/pace"
-ARCHIVE_URL="${PACE_INSTALL_ARCHIVE_URL:-https://github.com/Ghost233/pace/archive/refs/heads/main.tar.gz}"
+PACE_INSTALL_REF="${PACE_INSTALL_REF:-main}"
+PACE_INSTALL_REF_TYPE="${PACE_INSTALL_REF_TYPE:-heads}"
+ARCHIVE_URL="${PACE_INSTALL_ARCHIVE_URL:-https://github.com/Ghost233/pace/archive/refs/${PACE_INSTALL_REF_TYPE}/${PACE_INSTALL_REF}.tar.gz}"
+BACKUP_ROOT="${PACE_INSTALL_BACKUP_ROOT:-$CODEX_HOME/backups/pace}"
 SOURCE_DIR="${PACE_INSTALL_SOURCE_DIR:-}"
 TMP_DIR=""
+BACKUP_DIR=""
 
 cleanup() {
   if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
@@ -15,6 +19,15 @@ cleanup() {
 }
 
 trap cleanup EXIT
+
+copy_managed_entry() {
+  local src="$1"
+  local dest_root="$2"
+  local base
+  base="$(basename "$src")"
+  rm -rf "$dest_root/$base"
+  rsync -a "$src" "$dest_root/"
+}
 
 load_source() {
   if [[ -n "$SOURCE_DIR" ]]; then
@@ -63,13 +76,25 @@ if [[ ! -d "$PACE_ROLES_SRC" ]]; then
   exit 1
 fi
 
+if [[ -d "$PACE_HOME" ]]; then
+  mkdir -p "$BACKUP_ROOT"
+  BACKUP_DIR="$BACKUP_ROOT/$(date -u +%Y%m%dT%H%M%SZ)"
+  mkdir -p "$BACKUP_DIR"
+  rsync -a "$PACE_HOME/" "$BACKUP_DIR/"
+fi
+
 mkdir -p "$PACE_HOME"
 
-rsync -a --delete "$SKILLS_SRC/" "$PACE_HOME/"
-mkdir -p "$PACE_HOME/bin" "$PACE_HOME/.pace"
-rsync -a --delete "$PACE_CONFIG_SRC/" "$PACE_HOME/.pace/"
-rsync -a --delete "$PACE_BIN_SRC/" "$PACE_HOME/bin/"
-rsync -a --delete "$PACE_ROLES_SRC/" "$PACE_HOME/roles/"
+for entry in "$SKILLS_SRC"/*; do
+  [[ -e "$entry" ]] || continue
+  copy_managed_entry "$entry" "$PACE_HOME"
+done
+
+rm -rf "$PACE_HOME/.pace" "$PACE_HOME/bin" "$PACE_HOME/roles"
+mkdir -p "$PACE_HOME/.pace" "$PACE_HOME/bin" "$PACE_HOME/roles"
+rsync -a "$PACE_CONFIG_SRC/" "$PACE_HOME/.pace/"
+rsync -a "$PACE_BIN_SRC/" "$PACE_HOME/bin/"
+rsync -a "$PACE_ROLES_SRC/" "$PACE_HOME/roles/"
 chmod +x \
   "$PACE_HOME/bin/pace-merge.js" \
   "$PACE_HOME/bin/pace-init.js" \
@@ -83,6 +108,18 @@ PACE 已安装到:
 
 - Skills: $PACE_HOME
 - Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js, $PACE_HOME/bin/pace-issue-doc.js, $PACE_HOME/bin/pace-multica.js
+- 安装源: ${SOURCE_DIR:-$ARCHIVE_URL}
+- 安装版本: refs/${PACE_INSTALL_REF_TYPE}/${PACE_INSTALL_REF}
+- 备份目录: ${BACKUP_DIR:-未创建（首次安装）}
+
+说明:
+
+- 当前安装只替换 PACE 管理的路径：skills、bin、.pace、roles
+- 如果旧目录中有自定义内容，安装前备份已保存在上面的备份目录中
+- 如需固定版本，可在执行前设置:
+  - PACE_INSTALL_REF_TYPE=tags
+  - PACE_INSTALL_REF=<tag>
+  - 或直接设置 PACE_INSTALL_ARCHIVE_URL=<tarball-url>
 
 之后可直接在任意项目根目录运行:
 

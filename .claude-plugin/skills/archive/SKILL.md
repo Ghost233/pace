@@ -51,6 +51,11 @@ description: 归档已完成的 phase，将 phase 级产物移动到 `.pace/arch
 - date
 - included artifacts
 
+使用：
+
+- `templates/archive-index.template.md`
+- `templates/archive-meta.template.md`
+
 ## GitHub 文档层同步（仅 `multica + github`）
 
 - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`

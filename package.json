@@ -2,5 +2,8 @@
   "name": "pace",
   "version": "0.0.6",
   "description": "PACE - Plan, Act, Check, Evolve. 轻量级 Claude Code 项目管理 Skills",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
 }

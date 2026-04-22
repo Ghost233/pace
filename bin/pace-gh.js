@@ -3,11 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const { loadSession } = require('./lib/pace-config');
+const { parseIssueRef } = require('./lib/issue-ref');
 const {
-  currentLogin,
-  ensureGhInstalled,
   ensureGithubSession,
-  ensureRepoAccessible,
   run,
 } = require('./lib/github-cli');
 
@@ -22,7 +20,9 @@ function usage(exitCode = 0) {
     '',
     '允许的命令:',
     '  issue-read --issue <url|number> [--comments]',
-    '  issue-comment --issue <url|number> --body <text>',
+    '  issue-comment --issue <url|number> (--body <text> | --body-file <path>)',
+    '  issue-list [--state <open|closed|all>] [--limit <n>]',
+    '  issue-search --query <text> [--state <open|closed|all>] [--limit <n>]',
     '  attachment-download --issue <url|number> --url <attachment-url> [--output <path>]',
     '  whoami',
     '  repo-check',
@@ -30,7 +30,11 @@ function usage(exitCode = 0) {
     '参数规则:',
     '  --issue           可以传完整 issue URL，也可以只传 issue number',
     '  --comments        issue-read 时额外读取评论',
-    '  --body            issue-comment 必填，表示评论正文',
+    '  --body            issue-comment 可选，表示评论正文',
+    '  --body-file       issue-comment 可选，表示评论正文文件；与 --body 二选一',
+    '  --query           issue-search 必填，表示搜索文本',
+    '  --state           issue-list / issue-search 可选，默认 open',
+    '  --limit           issue-list / issue-search 可选，默认 30',
     '  --url             attachment-download 必填，表示附件 URL',
     '  --issue           attachment-download 必填，且附件必须出现在该 issue 的正文或评论中',
     '  --output          attachment-download 可选，默认为当前目录下的原文件名',
@@ -49,6 +53,9 @@ function usage(exitCode = 0) {
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check',
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-read --issue 72 --comments',
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body "已完成 discuss 阶段"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-comment --issue 72 --body-file /tmp/comment.md',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-list --state all --limit 50',
+    '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" issue-search --query "tracking-init" --state all',
     '  node "$HOME/.codex/skills/pace/bin/pace-gh.js" attachment-download --issue 72 --url "https://github.com/user-attachments/files/xxx/file.png"',
   ].join('\n');
   console.error(text);
@@ -104,6 +111,22 @@ function ensureIssueInSessionRepo(issue, sessionRepo) {
   }
 }
 
+function resolvePositiveLimit(rawLimit, fallback = 30) {
+  const value = rawLimit || String(fallback);
+  if (!/^\d+$/.test(value) || Number(value) < 1) {
+    throw new Error('--limit 必须是正整数');
+  }
+  return value;
+}
+
+function resolveState(rawState) {
+  const value = rawState || 'open';
+  if (!['open', 'closed', 'all'].includes(value)) {
+    throw new Error('--state 只支持 open | closed | all');
+  }
+  return value;
+}
+
 function isAllowedAttachmentUrl(rawUrl) {
   let url;
   try {
@@ -122,22 +145,38 @@ function isAllowedAttachmentUrl(rawUrl) {
   return false;
 }
 
-function parseIssueRef(issueRef, defaultRepo) {
-  if (!issueRef) {
-    throw new Error('缺少 --issue');
+function resolveIssueRef(issueRef, defaultRepo) {
+  return parseIssueRef(issueRef, defaultRepo, {
+    missingIssueMessage: '缺少 --issue',
+    missingRepoMessage: '当前未配置 GitHub repo。必须先让 `pace-init.js` 成功生成 `.pace/session.yaml`，在此之前禁止调用 pace-gh。',
+  });
+}
+
+function resolveCommentBodySource(options) {
+  const hasBody = typeof options.body === 'string' && options.body.length > 0;
+  const hasBodyFile = typeof options['body-file'] === 'string' && options['body-file'].length > 0;
+
+  if (hasBody && hasBodyFile) {
+    throw new Error('issue-comment 只能使用 --body 或 --body-file 其中一种');
   }
-  if (/^\d+$/.test(issueRef)) {
-    ensureRepo(defaultRepo);
-    return { repo: defaultRepo, number: Number(issueRef), url: `https://github.com/${defaultRepo}/issues/${issueRef}` };
+  if (!hasBody && !hasBodyFile) {
+    throw new Error('issue-comment 缺少 --body 或 --body-file');
   }
-  const match = issueRef.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)(?:[/?#].*)?$/);
-  if (!match) {
-    throw new Error(`无法解析 issue: ${issueRef}`);
+
+  if (hasBodyFile) {
+    const resolvedPath = path.resolve(process.cwd(), options['body-file']);
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`评论文件不存在: ${resolvedPath}`);
+    }
+    return {
+      mode: 'file',
+      value: resolvedPath,
+    };
   }
+
   return {
-    repo: match[1],
-    number: Number(match[2]),
-    url: issueRef,
+    mode: 'inline',
+    value: options.body,
   };
 }
 
@@ -159,7 +198,7 @@ function commandRepoCheck(context) {
 
 function commandIssueRead(context, options) {
   ensureRepo(context.repo);
-  const issue = parseIssueRef(options.issue, context.repo);
+  const issue = resolveIssueRef(options.issue, context.repo);
   ensureIssueInSessionRepo(issue, context.repo);
   ensureGithubSession(context.session, { requireRepo: true, repoOverride: issue.repo });
   const fields = ['number', 'title', 'body', 'state', 'author', 'labels', 'url'];
@@ -172,13 +211,58 @@ function commandIssueRead(context, options) {
 
 function commandIssueComment(context, options) {
   ensureRepo(context.repo);
-  const issue = parseIssueRef(options.issue, context.repo);
-  if (!options.body) {
-    throw new Error('issue-comment 缺少 --body');
-  }
+  const issue = resolveIssueRef(options.issue, context.repo);
+  const bodySource = resolveCommentBodySource(options);
   ensureIssueInSessionRepo(issue, context.repo);
   ensureGithubSession(context.session, { requireRepo: true, repoOverride: issue.repo });
-  run('gh', ['issue', 'comment', String(issue.number), '--repo', issue.repo, '--body', options.body], { stdio: 'inherit' });
+  const args = ['issue', 'comment', String(issue.number), '--repo', issue.repo];
+  if (bodySource.mode === 'file') {
+    args.push('--body-file', bodySource.value);
+  } else {
+    args.push('--body', bodySource.value);
+  }
+  run('gh', args, { stdio: 'inherit' });
+}
+
+function commandIssueList(context, options) {
+  ensureRepo(context.repo);
+  ensureGithubSession(context.session, { requireRepo: true });
+  const output = run('gh', [
+    'issue',
+    'list',
+    '--repo',
+    context.repo,
+    '--state',
+    resolveState(options.state),
+    '--limit',
+    resolvePositiveLimit(options.limit),
+    '--json',
+    'number,title,state,url,labels,author',
+  ]);
+  console.log(output);
+}
+
+function commandIssueSearch(context, options) {
+  ensureRepo(context.repo);
+  if (!options.query) {
+    throw new Error('issue-search 缺少 --query');
+  }
+  ensureGithubSession(context.session, { requireRepo: true });
+  const output = run('gh', [
+    'issue',
+    'list',
+    '--repo',
+    context.repo,
+    '--state',
+    resolveState(options.state),
+    '--limit',
+    resolvePositiveLimit(options.limit),
+    '--search',
+    options.query,
+    '--json',
+    'number,title,state,url,labels,author',
+  ]);
+  console.log(output);
 }
 
 function filenameFromUrl(url) {
@@ -205,7 +289,7 @@ function commandAttachmentDownload(context, options) {
     throw new Error('attachment-download 只允许下载 GitHub 附件地址');
   }
   ensureRepo(context.repo);
-  const issue = parseIssueRef(issueRef, context.repo);
+  const issue = resolveIssueRef(issueRef, context.repo);
   ensureIssueInSessionRepo(issue, context.repo);
   const raw = run('gh', ['issue', 'view', String(issue.number), '--repo', issue.repo, '--json', 'body,comments']);
   const payload = JSON.parse(raw);
@@ -252,6 +336,12 @@ function main() {
       case 'issue-comment':
         commandIssueComment(context, parsed.options);
         break;
+      case 'issue-list':
+        commandIssueList(context, parsed.options);
+        break;
+      case 'issue-search':
+        commandIssueSearch(context, parsed.options);
+        break;
       case 'attachment-download':
         commandAttachmentDownload(context, parsed.options);
         break;
@@ -264,4 +354,11 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  parseIssueRef: resolveIssueRef,
+  resolveCommentBodySource,
+};

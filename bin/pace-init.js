@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { ensureBinary, probe, run } = require('./lib/exec');
 const { dumpYaml, loadMergedConfig } = require('./lib/pace-config');
 
 function usage() {
@@ -129,18 +129,6 @@ function parseArgs(argv) {
   return { mode, options };
 }
 
-function run(command, args) {
-  try {
-    return execFileSync(command, args, {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-  } catch {
-    return '';
-  }
-}
-
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -167,19 +155,20 @@ function nowIso() {
 }
 
 function validateGitHub(repo, expectedUser) {
-  const ghPath = run('which', ['gh']);
-  if (!ghPath) {
+  try {
+    ensureBinary('gh', { message: 'gh 未安装' });
+  } catch {
     return { verified: false, reason: 'gh 未安装', login: '' };
   }
 
-  const login = run('gh', ['api', 'user', '--jq', '.login']);
+  const login = probe('gh', ['api', 'user', '--jq', '.login'], { fallback: '' });
   if (!login) {
     return { verified: false, reason: 'gh 未登录', login: '' };
   }
   if (expectedUser && login !== expectedUser) {
     return { verified: false, reason: 'gh 当前用户与期望用户不一致', login };
   }
-  const view = run('gh', ['repo', 'view', repo, '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
+  const view = probe('gh', ['repo', 'view', repo, '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], { fallback: '' });
   if (!view || view !== repo) {
     return { verified: false, reason: '当前用户无法访问目标仓库', login };
   }
@@ -193,17 +182,17 @@ function buildConfig(mode, options) {
 
   const branch = mode === 'multica'
     ? (options.branch || '')
-    : (options.branch || run('git', ['branch', '--show-current']));
-  const headSha = run('git', ['rev-parse', 'HEAD']);
-  const defaultBase = run('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'])
+    : (options.branch || probe('git', ['branch', '--show-current']));
+  const headSha = probe('git', ['rev-parse', 'HEAD']);
+  const defaultBase = probe('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'])
     .replace(/^origin\//, '');
   const baseBranch = options['base-branch'] || defaultBase || 'main';
   const repo = mode === 'multica'
     ? (options.repo || '')
     : '';
 
-  const gitName = options['git-name'] || run('git', ['config', 'user.name']) || config.git?.name || '';
-  const gitEmail = options['git-email'] || run('git', ['config', 'user.email']) || config.git?.email || '';
+  const gitName = options['git-name'] || probe('git', ['config', 'user.name']) || config.git?.name || '';
+  const gitEmail = options['git-email'] || probe('git', ['config', 'user.email']) || config.git?.email || '';
   const loginProbe = mode === 'multica'
     ? (options['github-user'] || '')
     : '';
@@ -336,4 +325,17 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildConfig,
+  mustRunCommand: run,
+  parseArgs,
+  parseGitHubIssueUrl,
+  parseNumberFromUrl,
+  probeCommand: probe,
+  validateGitHub,
+  writeSession,
+};

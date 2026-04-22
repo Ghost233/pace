@@ -3,6 +3,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { ensureBinary, runJson } = require('./lib/exec');
+const { parseIssueRef } = require('./lib/issue-ref');
 const { loadSession } = require('./lib/pace-config');
 const { ensureGithubSession, run } = require('./lib/github-cli');
 
@@ -91,29 +93,11 @@ function parseArgs(argv) {
   return { command, options };
 }
 
-function parseIssueRef(issueRef, defaultRepo) {
-  if (!issueRef) {
-    throw new Error('缺少 issue 参数');
-  }
-  if (/^\d+$/.test(issueRef)) {
-    if (!defaultRepo) {
-      throw new Error('当前未配置 GitHub repo，不能只传 issue number');
-    }
-    return {
-      repo: defaultRepo,
-      number: Number(issueRef),
-      url: `https://github.com/${defaultRepo}/issues/${issueRef}`,
-    };
-  }
-  const match = issueRef.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)(?:[/?#].*)?$/);
-  if (!match) {
-    throw new Error(`无法解析 issue: ${issueRef}`);
-  }
-  return {
-    repo: match[1],
-    number: Number(match[2]),
-    url: issueRef,
-  };
+function resolveIssueRef(issueRef, defaultRepo) {
+  return parseIssueRef(issueRef, defaultRepo, {
+    missingIssueMessage: '缺少 issue 参数',
+    missingRepoMessage: '当前未配置 GitHub repo，不能只传 issue number',
+  });
 }
 
 function ensureSameRepo(targetRepo, sessionRepo) {
@@ -258,10 +242,7 @@ function fetchIssueId(issue) {
 }
 
 function ensureGithubRepoAccess(repo) {
-  const ghPath = run('which', ['gh']);
-  if (!ghPath) {
-    throw new Error('gh 未安装');
-  }
+  ensureBinary('gh', { message: 'gh 未安装' });
   const login = run('gh', ['api', 'user', '--jq', '.login']);
   if (!login) {
     throw new Error('gh 未登录');
@@ -314,7 +295,7 @@ function createIssue(repo, title, body) {
   const temp = writeTempBody(body);
   try {
     const createdUrl = run('gh', ['issue', 'create', '--repo', repo, '--title', title, '--body-file', temp.file]);
-    return parseIssueRef(createdUrl, repo);
+    return resolveIssueRef(createdUrl, repo);
   } finally {
     cleanupTemp(temp);
   }
@@ -355,12 +336,23 @@ function issueApiPath(repo, suffix) {
   return `repos/${owner}/${name}${suffix}`;
 }
 
-function fetchIssueComments(repo, number) {
-  return JSON.parse(
-    run('gh', ['api', issueApiPath(repo, `/issues/${number}/comments`)], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-  );
+function fetchIssueComments(repo, number, options = {}) {
+  const perPage = options.perPage || 100;
+  const runner = options.runner || ((args) => runJson('gh', args, { stdio: ['ignore', 'pipe', 'pipe'] }));
+  const allComments = [];
+
+  for (let page = 1; ; page += 1) {
+    const pageItems = runner(['api', issueApiPath(repo, `/issues/${number}/comments?page=${page}&per_page=${perPage}`)]);
+    if (!Array.isArray(pageItems)) {
+      throw new Error('GitHub comments API 返回了非数组结果');
+    }
+    allComments.push(...pageItems);
+    if (pageItems.length < perPage) {
+      break;
+    }
+  }
+
+  return allComments;
 }
 
 function findMainIssueIndexComment(repo, number) {
@@ -666,7 +658,7 @@ function upsertIndexedDoc(context, rootIssue, state, options) {
 
   let targetIssue;
   if (entry.latest_issue_url) {
-    targetIssue = parseIssueRef(entry.latest_issue_url, context.repo);
+    targetIssue = resolveIssueRef(entry.latest_issue_url, context.repo);
     ensureSameRepo(targetIssue.repo, context.repo);
     const existingIssueInfo = fetchIssueId(targetIssue);
     const nextBody = renderDocBody({
@@ -724,7 +716,7 @@ function upsertIndexedDoc(context, rootIssue, state, options) {
 function ensureRootIssue(context, options) {
   ensureRootMode(context);
   ensureGithubSession(context.session, { requireRepo: true });
-  const mainIssue = parseIssueRef(options.issue, context.repo);
+  const mainIssue = resolveIssueRef(options.issue, context.repo);
   ensureSameRepo(mainIssue.repo, context.repo);
   const mainIssueInfo = fetchIssueId(mainIssue);
   const sessionIssueNumber = context.session?.data?.context?.issue?.number || null;
@@ -741,7 +733,7 @@ function ensureRootIssue(context, options) {
   let rootIssue;
   if (indexInfo?.rootIssueUrl) {
     try {
-      const hintedRoot = parseIssueRef(indexInfo.rootIssueUrl, context.repo);
+      const hintedRoot = resolveIssueRef(indexInfo.rootIssueUrl, context.repo);
       const hintedInfo = fetchIssueId(hintedRoot);
       const hintedState = parseRootState(hintedInfo.body || '', { strict: false });
       if (hintedState?.main_issue?.url === mainIssue.url) {
@@ -801,7 +793,7 @@ function ensureRootIssue(context, options) {
   state.chains = state.chains || {};
   for (const entry of Object.values(state.docs)) {
     if (!entry?.latest_issue_url) continue;
-    const docIssue = parseIssueRef(entry.latest_issue_url, context.repo);
+    const docIssue = resolveIssueRef(entry.latest_issue_url, context.repo);
     ensureSameRepo(docIssue.repo, context.repo);
   }
   upsertIndexedDoc(context, { repo: context.repo, number: rootInfo.number, url: rootInfo.url }, state, {
@@ -846,7 +838,7 @@ function commandAppendAudit(context, options) {
   if (!context.repo) {
     throw new Error('当前 session 未配置 GitHub repo');
   }
-  const issue = parseIssueRef(options.issue, context.repo);
+  const issue = resolveIssueRef(options.issue, context.repo);
   ensureSameRepo(issue.repo, context.repo);
   const { path: bodyPath } = readBodyFile(options['body-file']);
   ensureGithubSession(context.session, { requireRepo: true });
@@ -865,7 +857,7 @@ function commandEnsureRoot(context, options) {
 }
 
 function commandResolveInit(context, options) {
-  const mainIssue = parseIssueRef(options.issue, context.repo || '');
+  const mainIssue = resolveIssueRef(options.issue, context.repo || '');
   ensureGithubRepoAccess(mainIssue.repo);
   const rootTitle = `issue-${mainIssue.number}-doc`;
   let indexComment = findMainIssueIndexComment(mainIssue.repo, mainIssue.number);
@@ -874,7 +866,7 @@ function commandResolveInit(context, options) {
   let rootIssue = null;
   if (parsed?.rootIssueUrl) {
     try {
-      rootIssue = parseIssueRef(parsed.rootIssueUrl, mainIssue.repo);
+      rootIssue = resolveIssueRef(parsed.rootIssueUrl, mainIssue.repo);
       ensureSameRepo(rootIssue.repo, mainIssue.repo);
     } catch {
       rootIssue = null;
@@ -909,7 +901,7 @@ function commandResolveInit(context, options) {
     throw new Error('文档 root issue 当前索引缺少初始化参数 issue');
   }
 
-  const initIssue = parseIssueRef(expectedInitIssueUrl, mainIssue.repo);
+  const initIssue = resolveIssueRef(expectedInitIssueUrl, mainIssue.repo);
   ensureSameRepo(initIssue.repo, mainIssue.repo);
   const initInfo = fetchIssueId(initIssue);
   const initParams = parseInitParamsBody(initInfo.body || '');
@@ -1036,4 +1028,14 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildPhaseIssueBody,
+  fetchIssueComments,
+  parsePhaseIssueBody,
+  parseIssueRef: resolveIssueRef,
+  renderDocBody,
+};

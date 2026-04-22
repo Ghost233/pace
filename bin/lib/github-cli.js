@@ -1,20 +1,7 @@
-const { execFileSync } = require('child_process');
-
-function run(command, args, options = {}) {
-  return execFileSync(command, args, {
-    cwd: process.cwd(),
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    ...options,
-  }).trimEnd();
-}
+const { ensureBinary, run } = require('./exec');
 
 function ensureGhInstalled() {
-  try {
-    run('which', ['gh']);
-  } catch {
-    throw new Error('gh 未安装，不能执行 GitHub 相关操作');
-  }
+  ensureBinary('gh', { message: 'gh 未安装，不能执行 GitHub 相关操作' });
 }
 
 function currentLogin() {
