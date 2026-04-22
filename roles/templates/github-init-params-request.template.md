@@ -7,7 +7,7 @@
 
 - GitHub 用户（仓库 checkout / GitHub 访问使用的用户名）：<必填>
 - 仓库地址（owner/repo）：<必填>
-- 起始分支（从哪个分支开始修复）：<必填>
+- 起始分支（从哪个分支开始修复）：<必填；固定为 `agent/github/issue-<编号>-<slug>`>
 - Git Name：<必填>
 - Git Email：<必填>
 
@@ -21,7 +21,7 @@
 
 github_user: <username | 未提供>
 repo: <owner/repo | 未提供>
-branch: <branch | 未提供>
+branch: <agent/github/issue-<编号>-<slug> | 未提供>
 git_name: <name | 未提供>
 git_email: <email | 未提供>
 config_confirmed: <是|否>

@@ -35,7 +35,7 @@ function usage() {
       '',
       '自动探测规则:',
       '  --repo         multica 模式必填；local 模式忽略。',
-      '  --branch       multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取当前 git 分支。',
+      '  --branch       multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；并且必须使用 `agent/github/issue-<number>-<slug>` 格式；local 模式未传时，尝试读取当前 git 分支，推荐 `agent/local/<slug>`。',
       '  --base-branch  未传时，尝试读取 `origin/HEAD`，失败则回退为 `main`。',
       '  --github-user  multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；它表示仓库 checkout / GitHub 访问使用的指定用户名；local 模式未传则保留为空。',
       '  --git-name     multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取 `git config user.name`。',
@@ -63,7 +63,7 @@ function usage() {
       '',
       '  node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \\',
       '    --repo Conso-xFinite/Telegram-iOS \\',
-      '    --branch fix-draft-send-button \\',
+      '    --branch agent/github/issue-72-draft-send-button \\',
       '    --github-user ghost233 \\',
       '    --git-name "Ghost233" \\',
       '    --git-email "you@example.com" \\',
@@ -150,6 +150,19 @@ function parseGitHubIssueUrl(url) {
   };
 }
 
+function branchMentionsIssueNumber(branch, issueNumber) {
+  if (!branch || !issueNumber) return false;
+  const normalized = String(branch).trim().toLowerCase();
+  const number = String(issueNumber);
+  return new RegExp(`(?:^|[-_/])(?:issue-)?${number}(?:[-_/]|$)`).test(normalized);
+}
+
+function branchMatchesGitHubIssuePattern(branch, issueNumber) {
+  if (!branch || !issueNumber) return false;
+  const normalized = String(branch).trim().toLowerCase();
+  return new RegExp(`^agent/github/issue-${String(issueNumber)}(?:$|[-/].+)`).test(normalized);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -228,6 +241,9 @@ function buildConfig(mode, options) {
     }
     if (parsedIssue.repo !== repo) {
       throw new Error(`--issue-url 不属于当前 --repo: ${parsedIssue.repo} !== ${repo}`);
+    }
+    if (!branchMatchesGitHubIssuePattern(branch, parsedIssue.number)) {
+      throw new Error(`--branch 必须使用 agent/github/issue-${parsedIssue.number}-<slug> 格式`);
     }
   }
 
@@ -334,6 +350,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  branchMatchesGitHubIssuePattern,
+  branchMentionsIssueNumber,
   buildConfig,
   mustRunCommand: run,
   parseArgs,

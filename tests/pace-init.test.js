@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildConfig, mustRunCommand, probeCommand } = require('../bin/pace-init');
+const { branchMentionsIssueNumber, buildConfig, mustRunCommand, probeCommand } = require('../bin/pace-init');
 
 test('pace-init probeCommand keeps optional probes non-fatal', () => {
   const output = probeCommand(process.execPath, ['-e', 'process.exit(2)']);
@@ -26,4 +26,10 @@ test('pace-init multica still requires explicit github user repo branch and git 
       }),
     /--repo[\s\S]*--branch[\s\S]*--github-user[\s\S]*--git-name[\s\S]*--git-email/
   );
+});
+
+test('pace-init branch helper still detects issue number token', () => {
+  assert.equal(branchMentionsIssueNumber('issue-80-profile-qr-theme-fix', 80), true);
+  assert.equal(branchMentionsIssueNumber('bugfix/issue-80-profile-qr-theme-fix', 80), true);
+  assert.equal(branchMentionsIssueNumber('profile-qr-theme-fix', 80), false);
 });

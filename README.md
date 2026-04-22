@@ -209,7 +209,7 @@ PACE 现在推荐拆成两层：
 | Role | 作用 |
 |------|------|
 | `PACE-调度经理` | 当当前状态不明确时先做分诊和路由，决定交给哪个角色；仍不确定时退回用户 |
-| `PACE-初始化经理` | 补齐 `.pace/` 工作区核心产物和代码地图，只负责 `bootstrap / map-codebase` 前置准备 |
+| `PACE-初始化经理` | 只负责两类本地准备：首次初始化，或新 worktree 的本地缓存恢复；不负责 requirement 内容 |
 | `PACE-需求接管经理` | 新 issue 首次接管；补齐 GitHub issue 链接；建立追踪上下文与 `tracking-init` |
 | `PACE-阶段经理` | 管 `intake → discuss → plan` 的阶段推进和边界收敛 |
 | `PACE-交付经理` | 管 `execute` 的分发、阻塞汇报和阶段交接 |
@@ -221,7 +221,8 @@ PACE 现在推荐拆成两层：
 
 - `tech` phase 不走 roles 链路；它只由 roadmap 中声明的 `Owner Skill` 执行，然后进入 `pace:verify` 与 `pace:archive`
 - `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `status / verify / archive` 无法确定它是否完成
-- 若 `.pace/` 工作区核心产物缺失，必须先进入 `PACE-初始化经理`
+- `.pace/session.yaml` 缺失时，必须先运行 `pace-init.js`
+- `.pace/` 本地缓存缺失不自动等于“首次初始化”；若 GitHub 文档链已稳定，应优先按 GitHub 真相继续路由，只在确实需要本地缓存时再做恢复
 - `PACE-需求接管经理` 负责 issue 首次接管与 `tracking-init`，不等于 `pace:intake`
 - `pace:intake` 由 `PACE-阶段经理` 在 requirement 信息不完整时调用；若 requirement 字段已经齐备，可以直接进入 `pace:discuss`
 - `requirement` phase 才进入 `PACE-需求接管经理 → PACE-阶段经理 → PACE-交付经理 → PACE-验收归档经理`
@@ -297,8 +298,15 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
 首次接管时，这 5 个值只能来自当前轮用户手动输入；后续角色重入时，才允许来自已存在的初始化参数文档。
 不能从 issue 正文、外部编排器参数、本地 `gh` / `git config` 推断、抄回或补齐成用户输入。
 其中 `github_user` 用于绑定仓库 checkout / GitHub 访问所使用的指定账号，不是一个可省略的展示字段。
+`branch` 还必须能反向追踪到 issue；在 `multica + github` 下固定为 `agent/github/issue-<number>-<slug>`。如果是本地模式，推荐使用 `agent/local/<slug>`，这样第二级目录就能区分 github / local 两类运行模式。
 如果参数填错，直接用正确参数重新执行一次 `pace-init` 即可覆盖 `.pace/session.yaml`。
 `pace-merge` 只用于排查模板值，不是正常流程的必经步骤。
+
+不要把下面三件事都叫“初始化”：
+
+- `session re-init`：每轮都允许重跑 `pace-init.js`，只重建 `.pace/session.yaml`
+- `first bootstrap`：第一次建立 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md` 与 `.pace/codebase/`
+- `local cache rehydrate`：新 worktree 只有 `.pace/session.yaml` 时，把本地缓存重新补齐；这属于恢复，不等于首次初始化
 
 统一初始化原则：
 

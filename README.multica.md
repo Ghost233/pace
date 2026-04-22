@@ -22,20 +22,21 @@
    - 主 issue 的追踪块与阶段结论 comment
    - 文档 root issue、初始化参数文档 issue、各 phase 文档 issue 的最新版 body 与审计 comment
    `.pace/` 只是当前工作区的本地产物，不保证下轮还在。
-3. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须进入 GitHub 文档层；不能只同步 handoff 摘要。
-4. Multica issue 是流程入口和协作面。
-5. GitHub 主 issue 是阶段状态时间线与总入口；GitHub 文档 root issue 负责索引；初始化参数文档 issue 负责恢复参数；各 phase 文档 issue 负责 phase 级正文持久层。
-6. 文档之间只通过“主 issue 的受控索引 comment + 文档 root issue 的索引正文 / JSON + 文档 issue URL”关联；不依赖 GitHub 原生 `sub-issue / parent-issue` 功能。
-7. 如果索引层发生冲突，优先级固定为：文档 root issue 的 JSON 索引 > 初始化参数文档 issue / 各 phase 文档 issue 正文 > 主 issue 的受控索引 comment。
-8. 主 issue 的受控索引 comment 是首选入口，但不是唯一入口；如果它缺失、损坏或漂移，允许从文档 root issue 的 JSON 索引反查恢复，并自动补回该 comment。
-9. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
-10. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
-11. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
-12. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
-13. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
-14. 如果流程会产出 multica issue 读取、评论、状态变更或角色切换，推荐只使用 `pace-multica`，不要直接运行原生 `multica issue ...`
-15. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
-16. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
+3. `.pace/session.yaml` 只负责本轮会话；它可以每轮重建。`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md` 与 `.pace/codebase/` 只是本地缓存，缺失不自动等于“还没初始化过”。
+4. 当 `tracker.type = github` 且 `executor = multica` 时，稳定阶段文档必须进入 GitHub 文档层；不能只同步 handoff 摘要。
+5. Multica issue 是流程入口和协作面。
+6. GitHub 主 issue 是阶段状态时间线与总入口；GitHub 文档 root issue 负责索引；初始化参数文档 issue 负责恢复参数；各 phase 文档 issue 负责 phase 级正文持久层。
+7. 文档之间只通过“主 issue 的受控索引 comment + 文档 root issue 的索引正文 / JSON + 文档 issue URL”关联；不依赖 GitHub 原生 `sub-issue / parent-issue` 功能。
+8. 如果索引层发生冲突，优先级固定为：文档 root issue 的 JSON 索引 > 初始化参数文档 issue / 各 phase 文档 issue 正文 > 主 issue 的受控索引 comment。
+9. 主 issue 的受控索引 comment 是首选入口，但不是唯一入口；如果它缺失、损坏或漂移，允许从文档 root issue 的 JSON 索引反查恢复，并自动补回该 comment。
+10. 角色负责决定“下一步做什么”，skill 负责把这一步做完。
+11. 只要要访问 GitHub，用户必须先在流程外完成 `gh` 安装与登录；如果使用 `pace-gh` / `pace-git`，它们只会在当前机器已完成登录的前提下，在已登录账号之间按 session 切换 GitHub 用户。
+12. 如果流程会产出 git 提交，必须明确使用配置中的 `git.name` 和 `git.email`，不能依赖机器默认身份。
+13. 如果流程会产出 git 操作，推荐只使用 `pace-git`，不要直接运行原生 `git`。
+14. 如果流程会产出 GitHub issue 读取、评论或附件下载，推荐只使用 `pace-gh`，不要直接运行原生 `gh`。
+15. 如果流程会产出 multica issue 读取、评论、状态变更或角色切换，推荐只使用 `pace-multica`，不要直接运行原生 `multica issue ...`
+16. `tech` phase 不进入 roles 链路；它只能由 roadmap 中的 `Owner Skill` 处理，随后进入 `pace:verify` 和 `pace:archive`。
+17. `tech` phase 必须在 roadmap 中声明 `Expected Outputs`，否则 `pace:status`、`pace:verify` 和 `pace:archive` 无法确定完成状态。
 
 ## 前置准备
 
@@ -83,7 +84,7 @@ cd <checkout 后的仓库根目录>
 node "$HOME/.codex/skills/pace/bin/pace-multica.js" issue-get --issue <multica-issue-id>
 node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-list --issue <multica-issue-id> --limit 50
 ```
-### 1. 初始化 multica 会话
+### 1. 重建 multica 会话
 
 在项目仓库根目录执行：
 
@@ -102,6 +103,7 @@ node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \
 
 这会生成 `.pace/session.yaml`，把本次 multica 运行所需的配置和上下文一次性写好。
 其中执行仓库地址和执行分支都必须显式指定，不能只给 repo 不给 branch。
+分支名还必须能反向追踪到 GitHub issue；统一使用 `agent/github/issue-<number>-<slug>`。
 如果参数填错，直接用正确参数重新执行一次 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 即可覆盖 `.pace/session.yaml`。
 
 如果当前 shell 里没有 `pace-init` 这个命令，不代表没安装；这里默认不再暴露 PATH 命令入口，直接检查脚本文件：
@@ -129,18 +131,27 @@ node "$HOME/.codex/skills/pace/bin/pace-git.js" status
 node "$HOME/.codex/skills/pace/bin/pace-gh.js" repo-check
 ```
 
-### 2. 初始化 PACE 工作区
+### 2. 首次初始化与本地缓存恢复
 
-第一次接入项目时，至少需要完成：
+不要把下面三件事混成一次“初始化”：
+
+- `session re-init`：每轮都允许执行，只负责重建 `.pace/session.yaml`
+- `first bootstrap`：第一次在本地建立 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`
+- `local cache rehydrate`：新 checkout / 新 worktree 只有 `.pace/session.yaml` 时，把本地缓存重新补齐
+
+只有第一次接入项目或 GitHub 文档链尚未建立时，才是“首次初始化”。
 
 ```text
-PACE-初始化经理 -> pace:bootstrap
+PACE-初始化经理 -> first bootstrap
+PACE-初始化经理 -> pace:map-codebase（brownfield 时）
 ```
 
-如果项目不是 greenfield，而是已有代码的仓库，再补一次：
+如果 GitHub 文档链和初始化参数文档已经存在，但当前 checkout 缺少 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`，这叫“本地缓存恢复”，不是再次初始化：
 
 ```text
-PACE-初始化经理 -> pace:map-codebase
+PACE-初始化经理 -> local cache rehydrate
+PACE-初始化经理 -> pace:bootstrap
+PACE-初始化经理 -> pace:map-codebase（仅当当前角色确实需要代码地图）
 ```
 
 ### 3. 推荐配置
@@ -298,14 +309,17 @@ gh auth switch -u <tracker.github.username>
 - 不要把每个 skill 都单独做成一个 multica agent
 - 角色 agent 只负责流程推进，不替代 `.pace/` 产物
 - 每个角色在本轮开始前都必须确保 `.pace/session.yaml` 已由 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica` 初始化
+- 这一步只是 `session re-init`，不是“重新初始化项目”
 - 除 `PACE-需求接管经理` 的首次接管外，其余角色在本轮开始前都应先通过 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" resolve-init --issue <main-issue>` 读取主 issue 对应的初始化参数，再调用 `pace-init.js`
 - `resolve-init` 默认直接输出一条可执行的 `pace-init.js multica ...` 命令；如需机器消费，可改用 `--format args` 或 `--format json`
 - 对全新的主 issue，`PACE-需求接管经理` 允许先使用当前已知参数调用 `pace-init.js`，随后立即创建文档 root issue 与初始化参数文档 issue
 - 首次进入时，“当前已知参数”只允许来自：multica issue / GitHub issue 中已经明确给出的初始化参数、外部编排器显式传入的参数、以及当前轮用户补充；禁止从本地 git/gh 状态猜测补齐
+- 分支命名固定为 `agent/github/issue-<number>-<slug>`；第二级 `github` 用来区分运行模式，且分支名必须包含主 issue 编号，方便从分支名反向追踪到 GitHub issue
 - 本地 `gh auth status`、`gh api user`、`git config` 只允许校验当前机器状态，不允许拿来补齐缺失的 `pace-init.js` 参数
 - 若 `pace-init.js` 报缺参，必须按脚本列出的缺失清单一次性向用户索取，不要逐个试错
 - 在 `pace-init.js` 成功前，禁止调用 `pace-gh`、禁止尝试读取 GitHub 文档链、禁止写 GitHub comment
-- `pace-init.js` 成功后，如果当前唯一阻塞是 `.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md` 缺失，则必须直接 `handoff: PACE-初始化经理`；不要再输出 `needs_user_input`
+- `pace-init.js` 成功后，如果当前唯一问题是本地 `.pace/` 缓存缺失，而 GitHub 文档链已足够确认当前目标、当前阶段与下一入口条件，这不算“未初始化”；应优先按 GitHub 真相继续路由，只有确实需要本地缓存时才进入 `PACE-初始化经理`
+- 如果阻塞来自目标分支被其他 worktree 占用、无法切到目标分支，必须把它归类为 `branch/worktree conflict`，不要伪装成“缺少 `.pace/` 核心产物”
 - 每个角色如果通过 `pace-gh` / `pace-git` 执行命令，只会在当前机器已完成 GitHub 登录的前提下按 session 切换 GitHub 用户；只有直接使用原生 `gh` 时，才需要手工执行 `gh auth switch -u <tracker.github.username>`
 - 在 multica 角色模式下，`handoff: <角色>` 不只是评论里的语义文本；必须进一步通过 `pace-multica.js handoff --issue <multica-issue-id> --to <角色>` 落成真实 reassignment
 - `pace-gh`、`pace-git`、`pace-multica` 任一失败时，都不能直接 fallback 到对应的原生命令；除非角色/skill 文档明确把该原生命令列为唯一允许例外
@@ -317,7 +331,7 @@ gh auth switch -u <tracker.github.username>
 PACE 在 multica 中可稳定构建的是下面这条 requirement 闭环：
 
 1. `PACE-初始化经理`
-   条件：`.pace/` 工作区核心产物缺失，或 brownfield 仓库缺少代码地图
+   条件：首次初始化，或当前 checkout 确实需要本地缓存恢复 / 代码地图恢复
    产物：`.pace/project.md`、`.pace/requirements.md`、`.pace/roadmap.md`、`.pace/state.md`、必要时 `.pace/codebase/`
 2. `PACE-需求接管经理`
    条件：issue 尚无追踪块或 GitHub issue URL
@@ -630,12 +644,14 @@ multica 模式下，本轮执行先读：
 唯一判定规则：
 
 - `.pace/session.yaml` 只负责本轮 config + context
+- `session re-init` 可以每轮发生，不表示项目又被“初始化了一次”
 - 主 issue comment 只负责阶段状态、handoff、closeout
 - 文档 root issue 只负责索引
 - 初始化参数文档 issue 只负责后续角色复用的初始化参数
 - phase 文档 issue body 只负责该 phase 的最新版稳定正文
 - 文档 issue comment 只负责正文更新审计
 - `.pace/` 只负责本轮工作区缓存副本
+- 本地 `.pace/` 缓存缺失只表示“当前 checkout 没恢复出来”，不自动等于“流程未初始化”
 - 任何跨轮次冲突都按这条优先级处理：
   - 阶段状态 / handoff / closeout：主 issue comment 优先
   - 正文内容：文档 issue body 优先
@@ -662,7 +678,7 @@ multica 模式下，本轮执行先读：
 
 ```text
 1. 你在 Multica 创建 issue: "支持批量导出订单 CSV"
-2. 如果当前仓库工作区未就绪，先交给 PACE-初始化经理
+2. 如果当前 issue 是第一次进入 PACE，或当前角色确实需要本地缓存恢复，才交给 PACE-初始化经理
 3. 工作区就绪后，分配给 PACE-需求接管经理
 4. 它发现没有 GitHub issue URL，于是创建 GitHub issue 并回填链接
 5. 它写追踪初始化 comment，确保存在文档 root issue 与初始化参数文档 issue，并创建或更新追踪相关文档 issue，然后 handoff 给 PACE-阶段经理
@@ -677,7 +693,7 @@ multica 模式下，本轮执行先读：
 ## 日常使用规则
 
 1. 人只负责创建 issue、补充业务目标、查看进度时间线。
-2. 工作区未就绪时第一位角色是 `PACE-初始化经理`；工作区已就绪后，标准新 issue 的第一位角色才是 `PACE-需求接管经理`；只有入口不明确时才先交给 `PACE-调度经理`。
+2. 第一次初始化或确实需要本地缓存恢复时第一位角色才是 `PACE-初始化经理`；标准新 issue 在工作区已就绪后，第一位角色是 `PACE-需求接管经理`；只有入口不明确时才先交给 `PACE-调度经理`。
 3. 不要跳过 GitHub issue URL、主 issue 阶段 comment 和文档 issue 正文同步。
 4. 不要只靠 `.pace/` 本地缓存判断跨轮次状态；若与 GitHub 冲突，以 GitHub 为准。
 5. 卡住时先看 `pace:status` 和当前角色是否必须 handoff，而不是直接改角色职责。
