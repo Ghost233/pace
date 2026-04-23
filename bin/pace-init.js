@@ -10,13 +10,17 @@ function usage() {
     [
       '用法: node <pace-bin>/pace-init.js <local|multica> [参数]',
       '',
+      '当前推荐主路径:',
+      '  local + pace-workflow.js',
+      '  multica 仅为旧工具链兼容入口，不再是当前推荐模式。',
+      '',
       '作用:',
       '  初始化当前仓库的 `.pace/session.yaml`。',
       '  重复执行会直接覆盖 `.pace/session.yaml`，可用于修正填错的参数。',
       '',
       '模式说明:',
-      '  local    生成本地执行会话，默认 `executor=claude-code`。',
-      '  multica  生成外部编排会话，默认 `executor=multica`、`tracker.type=github`。',
+      '  local    生成本地执行会话，默认 `executor=claude-code`，供当前 workflow 主路径使用。',
+      '  multica  生成外部编排会话，默认 `executor=multica`、`tracker.type=github`，仅兼容旧工具链。',
       '',
       '常用参数:',
       '  --repo <owner/repo>',
@@ -29,7 +33,7 @@ function usage() {
       '  --issue-type <bug|feature|task>',
       '  --pr-url <url>',
       '  --base-branch <name>',
-      '  --current-role <PACE-...>',
+      '  --current-role <角色名>',
       '  --max-concurrent <n>',
       '  --model-profile <quality|balanced|budget|adaptive>',
       '',
@@ -70,7 +74,7 @@ function usage() {
       '    --issue-url "https://github.com/Conso-xFinite/Telegram-iOS/issues/72" \\',
       '    --issue-title "创作者中心的草稿编辑页面,发送按钮消失了" \\',
       '    --issue-type bug \\',
-      '    --current-role "PACE-需求接管经理"',
+      '    --current-role "PACE-流程经理"',
     ].join('\n')
   );
 }

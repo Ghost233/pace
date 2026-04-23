@@ -1,18 +1,13 @@
-# PACE multica 使用覆盖
-executor: multica
+# 已归档：multica 模式不再是当前支持的主工作流定义。
+# 保留这个文件仅为避免旧工具链直接报缺文件。
+# 当前有效定义请使用：
+# - .pace/config.yaml
+# - .pace/config.local.yaml
+
+executor: claude-code
 
 tracker:
-  type: github
-  github:
-    repo: "your-username/your-repo"
-    username: "your-username"
-    verified: false
-    create_missing_issue: true
-    sync_stage_comments: true
-
-git:
-  name: "Your Name"
-  email: "you@example.com"
+  type: local
 
 roles:
-  enabled: true
+  enabled: false

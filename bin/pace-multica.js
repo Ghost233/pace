@@ -29,8 +29,8 @@ function usage(exitCode = 0) {
     '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" issue-get --issue <multica-issue-id>',
     '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-list --issue <multica-issue-id> --limit 30',
     '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" comment-add --issue <multica-issue-id> --body-file /tmp/comment.md',
-    '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" assign --issue <multica-issue-id> --to "PACE-初始化经理"',
-    '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" handoff --issue <multica-issue-id> --to "PACE-初始化经理" --status blocked --body-file /tmp/final.md',
+    '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" assign --issue <multica-issue-id> --to "PACE-流程经理"',
+    '  node "$HOME/.codex/skills/pace/bin/pace-multica.js" handoff --issue <multica-issue-id> --to "PACE-流程经理" --status blocked --body-file /tmp/final.md',
   ].join('\n');
   console.error(text);
   process.exit(exitCode);
