@@ -13,14 +13,6 @@ description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地
 - `tracker.type = local`
 - `roles.enabled = false`
 
-不要再让用户选择：
-
-- `multica`
-- `tracker.type = github`
-- `roles.enabled = true`
-
-这些组合都不再是当前支持的主定义。
-
 ## 最小流程
 
 1. 读取 `.pace/session.yaml`
@@ -31,7 +23,7 @@ description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地
    - `agents.max_concurrent`
    - `agents.model_profile`
 4. 构造并执行：
-   - `node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "<name>" --git-email "<email>"`
+   - `node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "<name>" --git-email "<email>" --max-concurrent "<n>" --model-profile "<profile>"`
 5. 输出确认摘要
 
 ## 输出摘要至少包含
@@ -46,5 +38,5 @@ description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地
 ## 边界
 
 - 不要写多角色 managers
-- 不要询问 GitHub 仓库、GitHub 用户、主 issue URL
-- 不要执行任何 multica / GitHub 文档链初始化
+- 只询问当前本地 workflow 需要的字段
+- 不要引入任何外部追踪或角色配置

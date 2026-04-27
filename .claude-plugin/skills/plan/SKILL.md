@@ -9,10 +9,9 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
-- multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
-如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动 checker 子代理时使用对应的 model 参数。
+如果配置文件存在，提取 `agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动 checker 子代理时使用对应的 model 参数。
 
 ## 默认约定
 
@@ -20,7 +19,6 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 - 如果存在，读取 `.pace/phases/<phase>/context.md`
 - 如果存在，读取 `.pace/phases/<phase>/coverage.md`
 - 如果存在，读取 `.pace/codebase/`
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数文档 issue、对应 phase 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 plan
 - plans 写入 `.pace/phases/<phase>/plans/`
 - 保留 planner + checker 的两层结构
 
@@ -28,8 +26,6 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
 
 - `.pace/phases/<phase>/plans/` 下的一份或多份计划文件
 - checker 的修订结果，直接回写到 plans 或单独写一个简短 review note
-- `multica + github` 下，上述稳定正文只有在同步到对应文档 issue 的 body / section，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
-- `multica + github` 下，还必须产出对应的文档同步动作：plan 对应文档 issue body / section 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -49,17 +45,7 @@ description: 基于 context、requirements、roadmap 和代码证据生成可执
    - checker 返回 verdict：pass | revise | split
 5. 若 verdict = revise，根据 Required Revisions 同时修订 plans 和 coverage.md，然后重新提交 checker
 6. 若 verdict = split，停止当前 plan 编写并路由 `pace:roadmap`
-7. 若 verdict = pass，且当前是 `multica + github`，必须立即执行文档层同步：
-   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
-   - 默认使用当前 phase 的 `doc-key = phase-<NN>`，并通过 `--section` 更新对应 section
-   - 再分别执行 `upsert-doc` 同步：
-     - `coverage` 摘要 -> `--section plan`
-     - 每份 `plan-file` 的聚合结果 -> `--section plan`
-     - checker review note -> `--section plan`
-   - 每次 `upsert-doc` 如有修订摘要，配套写审计 comment
-   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 plan 完成
-   - 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
-8. 若 verdict = pass，结束并路由 `pace:execute`
+7. 若 verdict = pass，结束并路由 `pace:execute`
 
 ## 通过条件
 

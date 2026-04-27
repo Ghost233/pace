@@ -36,13 +36,20 @@ function createInstallSource(root, options = {}) {
     'pace-init.js',
     'pace-workflow.js',
     'pace-git.js',
-    'pace-gh.js',
-    'pace-issue-doc.js',
-    'pace-multica.js',
   ];
+  const binContents = {
+    'pace-merge.js': '#!/usr/bin/env node\nrequire("./lib/pace-config");\nif (process.argv.includes("--help")) console.log("用法:");\n',
+    'pace-init.js': '#!/usr/bin/env node\nrequire("./lib/exec");\nrequire("./lib/pace-config");\nif (process.argv.includes("--help")) console.log("用法:");\n',
+    'pace-workflow.js': '#!/usr/bin/env node\nrequire("./lib/workflow");\nif (process.argv.includes("--help")) console.log("用法:");\n',
+    'pace-git.js': '#!/usr/bin/env node\nrequire("./lib/exec");\nrequire("./lib/github-cli");\nrequire("./lib/pace-config");\nif (process.argv.includes("--help")) console.log("用法:");\n',
+  };
   for (const file of binFiles) {
-    writeFile(root, `bin/${file}`, '#!/usr/bin/env node\n', 0o755);
+    writeFile(root, `bin/${file}`, binContents[file] || '#!/usr/bin/env node\n', 0o755);
   }
+  writeFile(root, 'bin/lib/exec.js', 'module.exports = {};\n');
+  writeFile(root, 'bin/lib/github-cli.js', 'module.exports = {};\n');
+  writeFile(root, 'bin/lib/pace-config.js', 'module.exports = {};\n');
+  writeFile(root, 'bin/lib/workflow.js', 'module.exports = {};\n');
 
   writeFile(root, 'roles/流程经理.md', '# 流程经理\n');
   writeFile(root, 'roles/templates/workflow-final-comment.template.md', '# workflow template\n');
@@ -96,6 +103,14 @@ test('install-codex keeps unknown custom content while pruning previously manage
   assert.ok(fs.existsSync(path.join(paceHome, 'custom-root/NOTE.md')));
   assert.ok(fs.existsSync(path.join(paceHome, 'roles/templates/custom.template.md')));
   assert.ok(fs.existsSync(path.join(paceHome, 'workflow/SKILL.md')));
+  for (const script of ['pace-init.js', 'pace-workflow.js']) {
+    const result = spawnSync(process.execPath, [path.join(paceHome, 'bin', script), '--help'], {
+      cwd: paceHome,
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(`${result.stdout}\n${result.stderr}`, /用法:/);
+  }
 });
 
 test('install-codex first manifest upgrade prunes legacy managed paths in fully managed dirs', () => {
@@ -111,6 +126,9 @@ test('install-codex first manifest upgrade prunes legacy managed paths in fully 
 
   writeFile(paceHome, 'bin/legacy-old.js', '#!/usr/bin/env node\n');
   writeFile(paceHome, 'bin/custom-user.js', '#!/usr/bin/env node\n');
+  writeFile(paceHome, 'bin/pace-gh.js', '#!/usr/bin/env node\n');
+  writeFile(paceHome, 'bin/pace-issue-doc.js', '#!/usr/bin/env node\n');
+  writeFile(paceHome, 'bin/pace-multica.js', '#!/usr/bin/env node\n');
   writeFile(paceHome, 'roles/templates/closeout-archive-comment.template.md', '# old template\n');
   writeFile(paceHome, 'roles/templates/custom-user.template.md', '# custom template\n');
   writeFile(paceHome, '.pace/config.multica.yaml', '# old config\n');
@@ -121,6 +139,9 @@ test('install-codex first manifest upgrade prunes legacy managed paths in fully 
 
   assert.ok(fs.existsSync(path.join(paceHome, '.pace-install-manifest.txt')));
   assert.ok(fs.existsSync(path.join(paceHome, 'bin/legacy-old.js')));
+  assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-gh.js')), false);
+  assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-issue-doc.js')), false);
+  assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-multica.js')), false);
   assert.equal(fs.existsSync(path.join(paceHome, 'roles/templates/closeout-archive-comment.template.md')), false);
   assert.equal(fs.existsSync(path.join(paceHome, '.pace/config.multica.yaml')), false);
   assert.ok(fs.existsSync(path.join(paceHome, 'bin/custom-user.js')));
@@ -163,9 +184,6 @@ test('install-codex tolerates old sources without pace-workflow.js', () => {
       'pace-merge.js',
       'pace-init.js',
       'pace-git.js',
-      'pace-gh.js',
-      'pace-issue-doc.js',
-      'pace-multica.js',
     ],
   });
 

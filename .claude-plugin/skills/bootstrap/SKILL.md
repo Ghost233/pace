@@ -18,8 +18,8 @@ description: 初始化本地 PACE 工作区的最小真相源，识别 greenfiel
 当前仓库的 bootstrap 只定义本地模式：
 
 - 所有工作流产物写入 `.pace/`
-- 不依赖 GitHub issue / root issue / init-params issue
-- 不回交任何外部角色
+- 不依赖任何外部状态源
+- 不回交外部角色
 
 ## 必需产物
 
@@ -30,7 +30,7 @@ description: 初始化本地 PACE 工作区的最小真相源，识别 greenfiel
 
 若是 brownfield 且缺少代码地图，再追加：
 
-- `.pace/codebase/`
+- 后续由 `pace:map-codebase` 补齐 `.pace/codebase/`
 
 ## 最小流程
 
@@ -51,7 +51,6 @@ description: 初始化本地 PACE 工作区的最小真相源，识别 greenfiel
 
 ## 边界
 
-- 不要创建 GitHub issue
-- 不要写 GitHub comment
+- 不要创建外部追踪对象
 - 不要假装存在外部文档链
 - 不要做完整 roadmap 优化

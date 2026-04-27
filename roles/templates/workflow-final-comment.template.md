@@ -4,10 +4,11 @@
 ## [PACE] 流程结论 - <继续推进 | 等待用户 | 已关闭>
 
 - 角色：PACE-流程经理
-- 执行分支：<branch | 无>
+- 执行分支：<实际 checkout 分支 | 无>
+- PR：<url | 无>
 - 当前子阶段：<route | prepare | issue_intake | phase_manage | delivery | closeout>
 - 下一子阶段：<route | prepare | issue_intake | phase_manage | delivery | closeout | 无>
-- 下一 Skill：<pace:workflow | pace:bootstrap | pace:map-codebase | pace:intake | pace:discuss | pace:plan | pace:roadmap | pace:execute | pace:verify | pace:archive | pace:recover | 无>
+- 下一 Skill：<pace:* | Owner Skill | 无>
 - continue_workflow：<true | false>
 - needs_user_input：<true | false>
 - closed：<false | archived | verified-pass | abandoned>

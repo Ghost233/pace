@@ -9,10 +9,9 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
-- multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
-如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动研究子代理和审查子代理时使用对应的 model 参数。
+如果配置文件存在，提取 `agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。启动研究子代理和审查子代理时使用对应的 model 参数。
 
 ## 默认约定
 
@@ -20,15 +19,12 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 - 若存在 `.pace/codebase/`，一并读取
 - phase 级产物写入 `.pace/phases/<phase>/`
 - 讨论聚焦在边界、风险、参考和拒绝项，不展开实现细节
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue 的受控索引 comment、文档 root issue、初始化参数文档 issue、对应 phase 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步，不能直接继续 discuss
 
 ## 必需产物
 
 - `.pace/phases/<phase>/context.md`
 - `.pace/phases/<phase>/discussion-log.md`
 - `.pace/phases/<phase>/coverage.md`
-- `multica + github` 下，上述稳定正文只有在同步到对应文档 issue 的 body / section，并由主 issue 受控索引 comment 与文档 root issue 收录后，才算跨轮次持久化完成
-- `multica + github` 下，还必须产出对应的文档同步动作：文档 issue body / section 更新、审计 comment、文档 root issue 索引更新、主 issue 受控索引 comment 回填
 
 使用：
 
@@ -76,17 +72,7 @@ description: 针对某个 phase 收敛边界、锁定决策、拒绝项和参考
 11. 写 `context.md`
 12. 写 `discussion-log.md`
 13. 从 Locked Decisions 和讨论结果中提取编号化交付物，写 `coverage.md`
-14. 若当前是 `multica + github`，必须立即执行文档层同步：
-   - 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
-   - 默认使用当前 phase 的 `doc-key = phase-<NN>`，并通过 `--section` 更新对应 section
-   - 再分别执行 `upsert-doc` 同步：
-     - `context` -> `--section context`
-     - `discussion-log` -> `--section discussion-log`
-     - `coverage` -> `--section requirement-summary` 或 `--section plan` 中的覆盖摘要
-   - 每次 `upsert-doc` 如有摘要或变更说明，配套写审计 comment
-   - 只有当文档 root issue 与主 issue 受控索引 comment 已回填最新索引后，才算 discuss 完成
-   - 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
-15. 将讨论摘要和最终决策结果**打印到对话中**，供用户复查
+14. 将讨论摘要和最终决策结果**打印到对话中**，供用户复查
 
 ## 输出要求（硬性）
 

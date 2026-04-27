@@ -22,8 +22,6 @@ description: 作为 PACE 的本地单入口编排 skill 使用。读取 `.pace/s
 - `skills/workflow` 驱动
 - 本地 `.pace/` 作为工作区状态与执行缓存
 
-不要再把 `multica + github issue + 多角色 handoff` 当成当前支持模式。
-
 ## 每轮先读什么
 
 每轮开始固定执行：
@@ -41,6 +39,14 @@ description: 作为 PACE 的本地单入口编排 skill 使用。读取 `.pace/s
 - phase 结构：`.pace/roadmap.md`
 - requirement 归档：`.pace/requirements.md`
 - 当前 phase 产物：`.pace/phases/<phase>/...`
+
+## 代码托管边界
+
+- PACE 不把 issue、phase 或 requirement 当成 git 分支真相源
+- 如果当前运行环境已经 checkout 仓库并自动创建/切换分支，以实际 checkout 分支为准；不要从编号或 slug 推导“默认分支名”
+- PACE 不把 merge 当成默认完成动作
+- 如果仓库流程要求 PR / review，默认目标是把变更推进到当前平台要求的 review-ready 状态；PR / 分支可以作为附加交付证据，但不替代平台侧 review handoff
+- merge 属于外部托管流程，除非用户明确要求，否则不要写进默认闭环
 
 ## 子阶段
 
@@ -173,6 +179,7 @@ role / skill 不要自己再发明第二套重复检测缓存。
   - 不改 requirement 边界
 - `current_stage = closeout`
   - 不把 partial / fail 包装成完成
+  - 不把“已开 PR / 待 review”偷换成“已 merge”
 
 ## 技术 phase
 
@@ -181,4 +188,5 @@ role / skill 不要自己再发明第二套重复检测缓存。
 如果 roadmap 显示当前 phase `Type = tech`：
 
 - 输出 `needs_user_input: true` 或明确改走 `Owner Skill`
-- 不进入 `issue_intake / phase_manage / delivery / closeout`
+- 不进入 `issue_intake / phase_manage / delivery`
+- `Owner Skill` 产物齐备后进入 `closeout`，继续走 `pace:verify / pace:archive`

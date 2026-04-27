@@ -9,10 +9,9 @@ description: 受控恢复当前 phase 状态，支持重开已归档 phase、撤
 
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
-- multica / GitHub 角色链：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" multica ...`
-- 本地模式：要求先运行 `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
 
-如果配置文件存在，提取 `tracker`、`agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
+如果配置文件存在，提取 `agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
 ## 默认约定
 
@@ -21,7 +20,6 @@ description: 受控恢复当前 phase 状态，支持重开已归档 phase、撤
 - 若存在，读取 `.pace/phases/<phase>/verification.md`
 - 若存在，读取 `.pace/archive/index.md`
 - 若存在，读取对应 archive 目录中的 meta / 归档产物清单
-- `multica + github` 下，以上本地文件只在工作区已从 GitHub 主 issue、主 issue的受控索引 comment、文档 root issue、初始化参数文档 issue、对应 phase 文档 issue 恢复后才可信；若检测到缺失恢复、状态冲突或副本不完整，必须先停止并要求恢复/同步
 
 使用：
 
@@ -117,14 +115,6 @@ description: 受控恢复当前 phase 状态，支持重开已归档 phase、撤
 - 一份恢复说明：
   - `.pace/phases/<phase>/recovery.md`
   - 或 `.pace/archive/<archive-id>/recovery.md`
-
-## multica + github 同步（仅 `multica + github`）
-
-- 先执行 `node "$HOME/.codex/skills/pace/bin/pace-issue-doc.js" ensure-root --issue <main-issue>`
-- requirement phase 默认继续使用当前 phase 的 `doc-key = phase-<NN>`
-- 将恢复说明同步到当前 phase 文档 issue 的 `archive-status` 或 `verification` section
-- 如恢复动作影响下一步 skill、关闭状态或重新打开执行，还必须补一条主 issue comment 和审计 comment
-- 若需要回写 multica 平台 comment / status / handoff，只允许使用 `node "$HOME/.codex/skills/pace/bin/pace-multica.js" ...`，不得直接 fallback 到原生 `multica issue ...`
 
 ## 边界
 

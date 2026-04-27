@@ -17,6 +17,9 @@ ACTIVE_MANIFEST_PATH=""
 LEGACY_MANIFEST_PATH=""
 LEGACY_REMOVED_PATHS=(
   ".pace/config.multica.yaml"
+  "bin/pace-gh.js"
+  "bin/pace-issue-doc.js"
+  "bin/pace-multica.js"
   "roles/templates/closeout-archive-comment.template.md"
   "roles/templates/closeout-verify-comment.template.md"
   "roles/templates/delivery-final-comment.template.md"
@@ -279,6 +282,13 @@ PACE_CONFIG_SRC="$SOURCE_ROOT/.pace"
 PACE_BIN_SRC="$SOURCE_ROOT/bin"
 PACE_ROLES_SRC="$SOURCE_ROOT/roles"
 MANIFEST_PATH="$PACE_HOME/.pace-install-manifest.txt"
+ACTIVE_BIN_PATHS=(
+  "pace-merge.js"
+  "pace-init.js"
+  "pace-workflow.js"
+  "pace-git.js"
+  "lib"
+)
 
 if [[ ! -d "$SKILLS_SRC" ]]; then
   echo "未找到技能目录: $SKILLS_SRC" >&2
@@ -316,7 +326,11 @@ for entry in "$SKILLS_SRC"/*; do
 done
 
 collect_managed_tree "$PACE_CONFIG_SRC" ".pace"
-collect_managed_tree "$PACE_BIN_SRC" "bin"
+for bin_path in "${ACTIVE_BIN_PATHS[@]}"; do
+  if [[ -e "$PACE_BIN_SRC/$bin_path" ]]; then
+    collect_managed_tree "$PACE_BIN_SRC/$bin_path" "bin/$bin_path"
+  fi
+done
 collect_managed_tree "$PACE_ROLES_SRC" "roles"
 finalize_manifest
 prepare_existing_manifest
@@ -328,22 +342,25 @@ for entry in "$SKILLS_SRC"/*; do
 done
 
 sync_managed_entry "$PACE_CONFIG_SRC" "$PACE_HOME/.pace"
-sync_managed_entry "$PACE_BIN_SRC" "$PACE_HOME/bin"
+ensure_safe_directory_destination "$PACE_HOME/bin"
+mkdir -p "$PACE_HOME/bin"
+for bin_path in "${ACTIVE_BIN_PATHS[@]}"; do
+  if [[ -e "$PACE_BIN_SRC/$bin_path" ]]; then
+    sync_managed_entry "$PACE_BIN_SRC/$bin_path" "$PACE_HOME/bin/$bin_path"
+  fi
+done
 sync_managed_entry "$PACE_ROLES_SRC" "$PACE_HOME/roles"
 write_manifest
 chmod_if_present "$PACE_HOME/bin/pace-merge.js"
 chmod_if_present "$PACE_HOME/bin/pace-init.js"
 chmod_if_present "$PACE_HOME/bin/pace-workflow.js"
 chmod_if_present "$PACE_HOME/bin/pace-git.js"
-chmod_if_present "$PACE_HOME/bin/pace-gh.js"
-chmod_if_present "$PACE_HOME/bin/pace-issue-doc.js"
-chmod_if_present "$PACE_HOME/bin/pace-multica.js"
 
 cat <<EOF
 PACE 已安装到:
 
 - Skills: $PACE_HOME
-- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-workflow.js, $PACE_HOME/bin/pace-git.js, $PACE_HOME/bin/pace-gh.js, $PACE_HOME/bin/pace-issue-doc.js, $PACE_HOME/bin/pace-multica.js
+- Scripts: $PACE_HOME/bin/pace-merge.js, $PACE_HOME/bin/pace-init.js, $PACE_HOME/bin/pace-workflow.js, $PACE_HOME/bin/pace-git.js
 - 安装源: ${SOURCE_DIR:-$ARCHIVE_URL}
 - 安装版本: refs/${PACE_INSTALL_REF_TYPE}/${PACE_INSTALL_REF}
 - 备份目录: ${BACKUP_DIR:-未创建（首次安装）}
@@ -369,10 +386,4 @@ PACE 已安装到:
 仅在需要排查模板合并结果时，再运行:
 
   node "$PACE_HOME/bin/pace-merge.js" local
-
-以下旧脚本仅为兼容旧工具链保留，不属于当前推荐主路径:
-
-  node "$PACE_HOME/bin/pace-gh.js" --help
-  node "$PACE_HOME/bin/pace-multica.js" --help
-  node "$PACE_HOME/bin/pace-issue-doc.js" --help
 EOF
