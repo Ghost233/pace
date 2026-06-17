@@ -4,7 +4,6 @@
 
 当前主定义已经收敛为：
 
-- `local-only`
 - `skills/workflow` 驱动
 - 本地 `.pace/` 作为工作区状态与执行缓存
 
@@ -13,7 +12,7 @@
 - `pace:workflow` 负责编排、路由和阶段切换
 - 其他 `pace:*` skills 负责把某一步真正做完
 
-`multica + github issue + 多角色 handoff` 不再是当前支持的主工作流定义，只保留为历史兼容代码，不建议继续使用。
+旧的外部编排和多角色 handoff 路径已经移出当前安装面，不再作为 PACE 的工作流定义来源。
 
 ## 安装
 
@@ -44,14 +43,13 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 
 - skills → `~/.codex/skills/pace/`
 - primary scripts → `~/.codex/skills/pace/bin/pace-merge.js`、`~/.codex/skills/pace/bin/pace-init.js`、`~/.codex/skills/pace/bin/pace-workflow.js`、`~/.codex/skills/pace/bin/pace-git.js`
-- compatibility scripts → `~/.codex/skills/pace/bin/pace-gh.js`、`~/.codex/skills/pace/bin/pace-issue-doc.js`、`~/.codex/skills/pace/bin/pace-multica.js`
 
 这些脚本直接用 `node` 调用，不再额外生成 PATH 命令入口。
 
 常用调用方式：
 
 ```bash
-node "$HOME/.codex/skills/pace/bin/pace-init.js" local
+node "$HOME/.codex/skills/pace/bin/pace-init.js"
 node "$HOME/.codex/skills/pace/bin/pace-workflow.js" route --json
 ```
 
@@ -105,17 +103,10 @@ curl -fsSL https://raw.githubusercontent.com/Ghost233/pace/main/bin/install-code
 - `pace-merge.js`：查看模板合并结果
 - `pace-git.js`：受限 git 操作
 
-以下脚本仍保留在仓库中，但仅作为历史兼容代码，不再属于当前推荐主路径：
-
-- `pace-gh.js`
-- `pace-issue-doc.js`
-- `pace-multica.js`
-
 ## 快速开始
 
 ```bash
-# local-only / workflow
-node "$HOME/.codex/skills/pace/bin/pace-init.js" local
+node "$HOME/.codex/skills/pace/bin/pace-init.js"
 node "$HOME/.codex/skills/pace/bin/pace-workflow.js" route --json
 /pace:workflow
 /pace:bootstrap
@@ -169,10 +160,9 @@ PACE 当前推荐拆成两层：
 - **Workflow 层**：`pace-workflow.js` 负责脚本化读状态、判阶段、决定下一步 skill；`pace:workflow` 只消费脚本结果
 - **Skill 层**：`pace:bootstrap`、`pace:map-codebase`、`pace:intake`、`pace:discuss`、`pace:plan`、`pace:execute`、`pace:verify`、`pace:archive`、`pace:recover`
 
-当前主路径不再依赖：
+当前 workflow 不依赖：
 
 - 多角色 handoff
-- Multica assignee
 - GitHub issue / root issue / init-params issue / phase issue 作为工作流主真相源
 
 如果你仍然需要一个基础 prompt，可使用 [`roles/流程经理.md`](roles/流程经理.md)，但它现在只是本地 workflow 的极薄兼容层，不再是多角色系统。
@@ -206,20 +196,19 @@ PACE 当前主要使用两类文件：
 如果你只想检查模板合并结果，再使用：
 
 ```bash
-node "$HOME/.codex/skills/pace/bin/pace-merge.js" local     # → .pace-config.yaml
-node "$HOME/.codex/skills/pace/bin/pace-merge.js" multica   # → .pace-config.yaml
+node "$HOME/.codex/skills/pace/bin/pace-merge.js"     # → .pace-config.yaml
 ```
 
 正常入口：
 
 ```bash
-node "$HOME/.codex/skills/pace/bin/pace-init.js" local
+node "$HOME/.codex/skills/pace/bin/pace-init.js"
 node "$HOME/.codex/skills/pace/bin/pace-workflow.js" route --json
 ```
 
 `pace-init` 会基于模板配置生成 `.pace/session.yaml`，并把当前 issue / PR / branch / role 一起写进去，作为本次运行的真相源。
 `pace-workflow` 会读取 `.pace/` 真相源和当前 phase 产物，输出结构化路由结果，并默认写入 `.pace/runtime/workflow-state.json` 来阻止无新产物时的重复续跑。
-当前主路径只定义本地模式：
+默认配置：
 
 - `tracker.type = local`
 - `executor = claude-code`
@@ -278,18 +267,9 @@ node "$HOME/.codex/skills/pace/bin/pace-git.js" push
 - `stash`
 - 强制 push
 
-遗留 GitHub / 外部编排脚本：
-
-- `pace-gh.js`
-- `pace-issue-doc.js`
-- `pace-multica.js`
-
-它们仍保留在仓库中，但不再属于当前推荐主路径。
-如果你看到这些脚本，不要把它们当成现在的 workflow 定义来源。
-
 配置字段：
 
-本地模式示例：
+配置示例：
 
 ```yaml
 executor: claude-code
@@ -378,8 +358,7 @@ pace/
 │   └── marketplace.json
 ├── .pace/                    # 本地配置与工作区状态
 │   ├── config.yaml
-│   ├── config.local.yaml
-│   └── config.multica.yaml   # 已归档，仅为旧工具链兼容保留
+│   └── config.local.yaml
 ├── roles/                    # 兼容提示词与 workflow 输出模板
 │   ├── 流程经理.md
 │   └── templates/
@@ -389,11 +368,8 @@ pace/
 │   ├── pace-workflow.js      # 脚本化 workflow 路由器
 │   ├── pace-git.js           # 受限 git 操作
 │   ├── pace-merge.js         # 配置合并脚本
-│   ├── pace-gh.js            # 旧兼容 GitHub 脚本
-│   ├── pace-issue-doc.js     # 旧兼容文档链脚本
-│   └── pace-multica.js       # 旧兼容 multica 脚本
+│   └── pace-gh.js            # 受限 GitHub 脚本
 ├── README.md
-├── README.multica.md         # 已归档的 multica 模式说明
 └── package.json
 ```
 

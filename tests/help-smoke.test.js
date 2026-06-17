@@ -9,8 +9,6 @@ const scripts = [
   'bin/pace-workflow.js',
   'bin/pace-git.js',
   'bin/pace-gh.js',
-  'bin/pace-multica.js',
-  'bin/pace-issue-doc.js',
 ];
 
 for (const script of scripts) {
@@ -26,7 +24,7 @@ for (const script of scripts) {
   });
 }
 
-test('bin/pace-init.js --help reflects local-only recommended entry', () => {
+test('bin/pace-init.js --help reflects default entry', () => {
   const target = path.resolve(__dirname, '..', 'bin/pace-init.js');
   const result = spawnSync(process.execPath, [target, '--help'], {
     cwd: path.resolve(__dirname, '..'),
@@ -35,12 +33,12 @@ test('bin/pace-init.js --help reflects local-only recommended entry', () => {
   const output = `${result.stdout}\n${result.stderr}`;
 
   assert.equal(result.status, 0, output);
-  assert.match(output, /当前推荐主路径/);
-  assert.match(output, /local \+ pace-workflow\.js/);
-  assert.match(output, /multica 仅为旧工具链兼容入口/);
+  assert.match(output, /用法: node <pace-bin>\/pace-init\.js \[参数\]/);
+  assert.doesNotMatch(output, /<local>/);
+  assert.doesNotMatch(output, /外部编排/);
 });
 
-test('bin/pace-merge.js --help reflects local-only recommended entry', () => {
+test('bin/pace-merge.js --help reflects default entry', () => {
   const target = path.resolve(__dirname, '..', 'bin/pace-merge.js');
   const result = spawnSync(process.execPath, [target, '--help'], {
     cwd: path.resolve(__dirname, '..'),
@@ -49,6 +47,7 @@ test('bin/pace-merge.js --help reflects local-only recommended entry', () => {
   const output = `${result.stdout}\n${result.stderr}`;
 
   assert.equal(result.status, 0, output);
-  assert.match(output, /当前主路径推荐使用 `local`/);
-  assert.match(output, /multica.*旧兼容配置/);
+  assert.match(output, /用法: node <pace-bin>\/pace-merge\.js/);
+  assert.doesNotMatch(output, /<local>/);
+  assert.doesNotMatch(output, /旧兼容配置/);
 });

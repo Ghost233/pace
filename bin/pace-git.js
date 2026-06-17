@@ -93,7 +93,7 @@ function ensureCommitMessage(argv) {
 
 function ensureSessionForWrite(session, commandName) {
   if (!session.exists) {
-    throw new Error(`${commandName} 需要先存在 .pace/session.yaml，请先运行 node "$HOME/.codex/skills/pace/bin/pace-init.js" local 或 multica`);
+    throw new Error(`${commandName} 需要先存在 .pace/session.yaml，请先运行 node "$HOME/.codex/skills/pace/bin/pace-init.js"`);
   }
   const name = session?.data?.config?.git?.name || '';
   const email = session?.data?.config?.git?.email || '';

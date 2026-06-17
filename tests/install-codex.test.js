@@ -89,6 +89,7 @@ test('install-codex keeps unknown custom content while pruning previously manage
 
   writeFile(paceHome, 'alpha/USER.md', 'custom user file\n');
   writeFile(paceHome, 'custom-root/NOTE.md', 'custom root file\n');
+  writeFile(paceHome, 'bin/install-codex.sh', '#!/usr/bin/env bash\n');
   writeFile(paceHome, 'roles/templates/custom.template.md', 'custom role template\n');
 
   createInstallSource(sourceV2, {
@@ -99,6 +100,7 @@ test('install-codex keeps unknown custom content while pruning previously manage
   assert.ok(fs.existsSync(path.join(paceHome, '.pace-install-manifest.txt')));
   assert.equal(fs.existsSync(path.join(paceHome, 'alpha/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(paceHome, 'roles/templates/managed-old.template.md')), false);
+  assert.equal(fs.existsSync(path.join(paceHome, 'bin/install-codex.sh')), false);
   assert.ok(fs.existsSync(path.join(paceHome, 'alpha/USER.md')));
   assert.ok(fs.existsSync(path.join(paceHome, 'custom-root/NOTE.md')));
   assert.ok(fs.existsSync(path.join(paceHome, 'roles/templates/custom.template.md')));
@@ -128,10 +130,9 @@ test('install-codex first manifest upgrade prunes legacy managed paths in fully 
   writeFile(paceHome, 'bin/custom-user.js', '#!/usr/bin/env node\n');
   writeFile(paceHome, 'bin/pace-gh.js', '#!/usr/bin/env node\n');
   writeFile(paceHome, 'bin/pace-issue-doc.js', '#!/usr/bin/env node\n');
-  writeFile(paceHome, 'bin/pace-multica.js', '#!/usr/bin/env node\n');
+  writeFile(paceHome, 'bin/install-codex.sh', '#!/usr/bin/env bash\n');
   writeFile(paceHome, 'roles/templates/closeout-archive-comment.template.md', '# old template\n');
   writeFile(paceHome, 'roles/templates/custom-user.template.md', '# custom template\n');
-  writeFile(paceHome, '.pace/config.multica.yaml', '# old config\n');
   writeFile(paceHome, '.pace/custom-user.yaml', 'custom: true\n');
   writeFile(paceHome, 'custom-root/NOTE.md', 'keep me\n');
 
@@ -141,9 +142,8 @@ test('install-codex first manifest upgrade prunes legacy managed paths in fully 
   assert.ok(fs.existsSync(path.join(paceHome, 'bin/legacy-old.js')));
   assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-gh.js')), false);
   assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-issue-doc.js')), false);
-  assert.equal(fs.existsSync(path.join(paceHome, 'bin/pace-multica.js')), false);
+  assert.equal(fs.existsSync(path.join(paceHome, 'bin/install-codex.sh')), false);
   assert.equal(fs.existsSync(path.join(paceHome, 'roles/templates/closeout-archive-comment.template.md')), false);
-  assert.equal(fs.existsSync(path.join(paceHome, '.pace/config.multica.yaml')), false);
   assert.ok(fs.existsSync(path.join(paceHome, 'bin/custom-user.js')));
   assert.ok(fs.existsSync(path.join(paceHome, 'roles/templates/custom-user.template.md')));
   assert.ok(fs.existsSync(path.join(paceHome, '.pace/custom-user.yaml')));

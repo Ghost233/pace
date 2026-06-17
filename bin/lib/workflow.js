@@ -748,11 +748,11 @@ function computeDecision(cwd) {
       continue_workflow: false,
       needs_user_input: true,
       blocking_code: 'missing_input',
-      reason: '当前工作区尚未初始化 session，必须先运行 pace-init.js local。',
+      reason: '当前工作区尚未初始化 session，必须先运行 pace-init.js。',
       evidence,
     }, {
       ...diagnostics,
-      suggested_command: 'node "$HOME/.codex/skills/pace/bin/pace-init.js" local',
+      suggested_command: 'node "$HOME/.codex/skills/pace/bin/pace-init.js"',
       missing_files: ['.pace/session.yaml'],
     });
   }

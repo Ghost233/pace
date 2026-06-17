@@ -9,7 +9,7 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
-- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js"`
 
 如果配置文件存在，提取 `agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 
@@ -19,7 +19,7 @@ description: 读取轻量 workflow 的状态与实际产物，输出当前所处
 - 再读取 `.pace/roadmap.md`，确认当前 phase 的 `Type` 与 `Owner Skill`
 - 再与 `.pace/phases/<phase>/` 的实际产物交叉验证
 - 如果当前 phase `Type = tech`，必须额外读取该 phase 的 `Expected Outputs`
-- 当前主路径下，本地 `.pace/` 就是当前工作区状态真相源
+- `.pace/` 就是当前工作区状态真相源
 - 默认只读；仅当 `state.md` 缺少可从磁盘直接推导的字段，且不涉及 phase/plan 状态变更时，允许修正 `Recommended Next Skill` 与缺失的路径引用；其余冲突只报告，不写盘
 
 ## 输出最少要回答

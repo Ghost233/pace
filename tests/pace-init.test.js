@@ -15,17 +15,17 @@ test('pace-init mustRunCommand preserves hard-failure details', () => {
   );
 });
 
-test('pace-init multica still requires explicit github user repo branch and git identity inputs', () => {
+test('pace-init rejects non-local modes', () => {
   assert.throws(
-    () =>
-      buildConfig('multica', {
-        'issue-url': 'https://github.com/Conso-xFinite/Telegram-iOS/issues/72',
-        'issue-title': '修复发送按钮消失',
-        'issue-type': 'bug',
-        'current-role': 'PACE-流程经理',
-      }),
-    /--repo[\s\S]*--branch[\s\S]*--github-user[\s\S]*--git-name[\s\S]*--git-email/
+    () => buildConfig('external', {}),
+    /不支持的模式: external/
   );
+});
+
+test('pace-init defaults to local mode when mode is omitted', () => {
+  const built = buildConfig({ branch: 'agent/default-mode' });
+  assert.equal(built.context.session.mode, 'local');
+  assert.equal(built.context.git.branch, 'agent/default-mode');
 });
 
 test('pace-init branch helper still detects issue number token', () => {

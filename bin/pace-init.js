@@ -8,24 +8,14 @@ const { dumpYaml, loadMergedConfig } = require('./lib/pace-config');
 function usage() {
   console.error(
     [
-      '用法: node <pace-bin>/pace-init.js <local|multica> [参数]',
-      '',
-      '当前推荐主路径:',
-      '  local + pace-workflow.js',
-      '  multica 仅为旧工具链兼容入口，不再是当前推荐模式。',
+      '用法: node <pace-bin>/pace-init.js [参数]',
       '',
       '作用:',
       '  初始化当前仓库的 `.pace/session.yaml`。',
       '  重复执行会直接覆盖 `.pace/session.yaml`，可用于修正填错的参数。',
       '',
-      '模式说明:',
-      '  local    生成本地执行会话，默认 `executor=claude-code`，供当前 workflow 主路径使用。',
-      '  multica  生成外部编排会话，默认 `executor=multica`、`tracker.type=github`，仅兼容旧工具链。',
-      '',
       '常用参数:',
-      '  --repo <owner/repo>',
       '  --branch <name>',
-      '  --github-user <username>',
       '  --git-name <name>',
       '  --git-email <email>',
       '  --issue-url <url>',
@@ -38,24 +28,11 @@ function usage() {
       '  --model-profile <quality|balanced|budget|adaptive>',
       '',
       '自动探测规则:',
-      '  --repo         multica 模式必填；local 模式忽略。',
-      '  --branch       multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；并且必须使用 `agent/github/issue-<number>-<slug>` 格式；local 模式未传时，尝试读取当前 git 分支，推荐 `agent/local/<slug>`。',
+      '  --branch       未传时，尝试读取当前 git 分支。',
       '  --base-branch  未传时，尝试读取 `origin/HEAD`，失败则回退为 `main`。',
-      '  --github-user  multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；它表示仓库 checkout / GitHub 访问使用的指定用户名；local 模式未传则保留为空。',
-      '  --git-name     multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取 `git config user.name`。',
-      '  --git-email    multica 模式必填；首次接管应来自用户本轮手动输入，后续重入可来自初始化参数文档；local 模式未传时，尝试读取 `git config user.email`。',
+      '  --git-name     未传时，尝试读取 `git config user.name`。',
+      '  --git-email    未传时，尝试读取 `git config user.email`。',
       '  --pr-url       未传时，保留为空。',
-      '',
-      'multica 模式必须显式传入:',
-      '  --repo',
-      '  --branch',
-      '  --github-user',
-      '  --git-name',
-      '  --git-email',
-      '  --issue-url',
-      '  --issue-title',
-      '  --issue-type',
-      '  --current-role',
       '',
       '填错后如何修改:',
       '  直接用正确参数重新执行一次 `node <pace-bin>/pace-init.js`，会覆盖 `.pace/session.yaml`。',
@@ -63,37 +40,30 @@ function usage() {
       '    cat .pace/session.yaml',
       '',
       '示例:',
-      '  node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "Ghost233" --git-email "you@example.com"',
-      '',
-      '  node "$HOME/.codex/skills/pace/bin/pace-init.js" multica \\',
-      '    --repo Conso-xFinite/Telegram-iOS \\',
-      '    --branch agent/github/issue-72-draft-send-button \\',
-      '    --github-user ghost233 \\',
-      '    --git-name "Ghost233" \\',
-      '    --git-email "you@example.com" \\',
-      '    --issue-url "https://github.com/Conso-xFinite/Telegram-iOS/issues/72" \\',
-      '    --issue-title "创作者中心的草稿编辑页面,发送按钮消失了" \\',
-      '    --issue-type bug \\',
-      '    --current-role "PACE-流程经理"',
+      '  node "$HOME/.codex/skills/pace/bin/pace-init.js" --git-name "Ghost233" --git-email "you@example.com"',
     ].join('\n')
   );
 }
 
 function parseArgs(argv) {
-  if (argv.length === 0 || argv.includes('--help') || argv.includes('-h')) {
+  if (argv.includes('--help') || argv.includes('-h')) {
     usage();
     process.exit(0);
   }
 
-  const mode = argv[0];
-  if (!['local', 'multica'].includes(mode)) {
-    console.error(`不支持的模式: ${mode}`);
-    usage();
-    process.exit(1);
+  const mode = 'local';
+  let startIndex = 0;
+  if (argv[0] && !argv[0].startsWith('--')) {
+    if (argv[0] !== 'local') {
+      console.error(`不支持的参数: ${argv[0]}`);
+      usage();
+      process.exit(1);
+    }
+    startIndex = 1;
   }
 
   const options = {};
-  for (let i = 1; i < argv.length; i += 1) {
+  for (let i = startIndex; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!arg.startsWith('--')) {
       console.error(`无法解析参数: ${arg}`);
@@ -193,73 +163,37 @@ function validateGitHub(repo, expectedUser) {
   return { verified: true, reason: '验证通过', login };
 }
 
-function buildConfig(mode, options) {
+function buildConfig(mode = 'local', options = {}) {
+  if (mode && typeof mode === 'object') {
+    options = mode;
+    mode = 'local';
+  }
+  if (mode !== 'local') {
+    throw new Error(`不支持的模式: ${mode}`);
+  }
   const loaded = loadMergedConfig(process.cwd(), mode, __filename);
   const config = loaded.merged;
 
-  const branch = mode === 'multica'
-    ? (options.branch || '')
-    : (options.branch || probe('git', ['branch', '--show-current']));
+  const branch = options.branch || probe('git', ['branch', '--show-current']);
   const headSha = probe('git', ['rev-parse', 'HEAD']);
   const defaultBase = probe('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'])
     .replace(/^origin\//, '');
   const baseBranch = options['base-branch'] || defaultBase || 'main';
-  const repo = mode === 'multica'
-    ? (options.repo || '')
-    : '';
+  const repo = '';
 
-  const gitName = mode === 'multica'
-    ? (options['git-name'] || '')
-    : (options['git-name'] || probe('git', ['config', 'user.name']) || config.git?.name || '');
-  const gitEmail = mode === 'multica'
-    ? (options['git-email'] || '')
-    : (options['git-email'] || probe('git', ['config', 'user.email']) || config.git?.email || '');
-  const loginProbe = mode === 'multica'
-    ? (options['github-user'] || '')
-    : '';
+  const gitName = options['git-name'] || probe('git', ['config', 'user.name']) || config.git?.name || '';
+  const gitEmail = options['git-email'] || probe('git', ['config', 'user.email']) || config.git?.email || '';
+  const loginProbe = '';
   const issueUrl = options['issue-url'] || '';
   const issueTitle = options['issue-title'] || '';
   const issueType = options['issue-type'] || '';
   const currentRole = options['current-role'] || '';
 
-  if (mode === 'multica') {
-    const missing = [];
-    if (!repo) missing.push('--repo');
-    if (!branch) missing.push('--branch');
-    if (!loginProbe) missing.push('--github-user');
-    if (!options['git-name']) missing.push('--git-name');
-    if (!options['git-email']) missing.push('--git-email');
-    if (!issueUrl) missing.push('--issue-url');
-    if (!issueTitle) missing.push('--issue-title');
-    if (!issueType) missing.push('--issue-type');
-    if (!currentRole) missing.push('--current-role');
-    if (missing.length > 0) {
-      throw new Error(
-        `multica 模式缺少必填参数:\n- ${missing.join('\n- ')}\n请一次性补齐后重试，不要逐项猜测或回填本地 git/gh 状态；首次接管时 --github-user、--repo、--branch、--git-name、--git-email 必须由用户手动输入。`
-      );
-    }
-
-    const parsedIssue = parseGitHubIssueUrl(issueUrl);
-    if (!parsedIssue) {
-      throw new Error('--issue-url 必须是合法的 GitHub issue URL');
-    }
-    if (parsedIssue.repo !== repo) {
-      throw new Error(`--issue-url 不属于当前 --repo: ${parsedIssue.repo} !== ${repo}`);
-    }
-    if (!branchMatchesGitHubIssuePattern(branch, parsedIssue.number)) {
-      throw new Error(`--branch 必须使用 agent/github/issue-${parsedIssue.number}-<slug> 格式`);
-    }
-  }
-
   const validation = repo ? validateGitHub(repo, loginProbe) : { verified: false, reason: '未提供 repo', login: loginProbe };
 
-  if (mode === 'multica' && !validation.verified) {
-    throw new Error(`multica 模式初始化失败：GitHub 校验未通过 (${validation.reason})`);
-  }
-
-  config.executor = mode === 'multica' ? 'multica' : 'claude-code';
+  config.executor = 'claude-code';
   config.tracker = config.tracker || {};
-  config.tracker.type = mode === 'multica' ? 'github' : (config.tracker.type || 'local');
+  config.tracker.type = config.tracker.type || 'local';
   config.tracker.github = config.tracker.github || {};
   config.tracker.github.repo = repo;
   config.tracker.github.username = loginProbe;
@@ -333,7 +267,6 @@ function main() {
   });
 
   console.log(`PACE 会话已初始化: ${sessionPath}`);
-  console.log(`模式: ${mode}`);
   console.log(`仓库: ${built.config.tracker.github.repo || '(未设置)'}`);
   console.log(`GitHub 用户: ${built.config.tracker.github.username || '(未设置)'}`);
   console.log(`GH 验证: ${built.validation.verified ? '通过' : `未通过 (${built.validation.reason})`}`);

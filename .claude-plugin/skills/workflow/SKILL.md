@@ -1,6 +1,6 @@
 ---
 name: pace:workflow
-description: 作为 PACE 的本地单入口编排 skill 使用。读取 `.pace/session.yaml`、`.pace/state.md`、`.pace/roadmap.md`、`.pace/requirements.md` 和当前 phase 产物，判断当前子阶段（route、prepare、issue_intake、phase_manage、delivery、closeout），再只调用该子阶段允许的本地执行 skills，最后输出 `current_stage`、`next_stage`、`next_skill`、`continue_workflow`、`needs_user_input`、`closed` 和 `blocking_code`。当用户想在本地用一个 skill 取代多角色 handoff，并保持 workflow 边界时触发。
+description: 作为 PACE 的单入口编排 skill 使用。读取 `.pace/session.yaml`、`.pace/state.md`、`.pace/roadmap.md`、`.pace/requirements.md` 和当前 phase 产物，判断当前子阶段（route、prepare、issue_intake、phase_manage、delivery、closeout），再只调用该子阶段允许的执行 skills，最后输出 `current_stage`、`next_stage`、`next_skill`、`continue_workflow`、`needs_user_input`、`closed` 和 `blocking_code`。当用户想用一个 skill 取代多角色 handoff，并保持 workflow 边界时触发。
 ---
 
 # PACE Workflow
@@ -18,7 +18,6 @@ description: 作为 PACE 的本地单入口编排 skill 使用。读取 `.pace/s
 
 当前主定义是：
 
-- `local-only`
 - `skills/workflow` 驱动
 - 本地 `.pace/` 作为工作区状态与执行缓存
 
@@ -26,7 +25,7 @@ description: 作为 PACE 的本地单入口编排 skill 使用。读取 `.pace/s
 
 每轮开始固定执行：
 
-1. 先确保 `.pace/session.yaml` 已由 `pace-init.js local` 生成
+1. 先确保 `.pace/session.yaml` 已由 `pace-init.js` 生成
 2. 执行 `pace-workflow.js route --json`
 3. 以脚本输出为准读取 `.pace/state.md`
 4. 只在需要补充证据时，再读取 `.pace/roadmap.md`、`.pace/requirements.md` 和当前 phase 产物

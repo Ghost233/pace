@@ -9,7 +9,7 @@ description: 受控恢复当前 phase 状态，支持重开已归档 phase、撤
 
 执行任何操作前，先读取 `.pace/session.yaml`。如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应按当前场景停止并要求先初始化：
 
-- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js"`
 
 如果配置文件存在，提取 `agents.max_concurrent`、`agents.model_profile`、`agents.model_overrides` 并应用于后续流程。
 

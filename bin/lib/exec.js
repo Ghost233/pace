@@ -7,7 +7,6 @@ const DEFAULT_MAX_BUFFER = 10 * 1024 * 1024;
 const COMMAND_TIMEOUTS_MS = {
   git: 10_000,
   gh: 20_000,
-  multica: 15_000,
   curl: 20_000,
   node: 10_000,
 };

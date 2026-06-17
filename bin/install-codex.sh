@@ -16,10 +16,9 @@ NEW_MANIFEST_PATH=""
 ACTIVE_MANIFEST_PATH=""
 LEGACY_MANIFEST_PATH=""
 LEGACY_REMOVED_PATHS=(
-  ".pace/config.multica.yaml"
   "bin/pace-gh.js"
   "bin/pace-issue-doc.js"
-  "bin/pace-multica.js"
+  "bin/install-codex.sh"
   "roles/templates/closeout-archive-comment.template.md"
   "roles/templates/closeout-verify-comment.template.md"
   "roles/templates/delivery-final-comment.template.md"
@@ -122,7 +121,12 @@ append_legacy_removed_paths() {
 
 prepare_existing_manifest() {
   if [[ -f "$MANIFEST_PATH" ]]; then
-    ACTIVE_MANIFEST_PATH="$MANIFEST_PATH"
+    ensure_tmp_dir
+    LEGACY_MANIFEST_PATH="$TMP_DIR/pace-install-manifest.existing-with-legacy"
+    cp "$MANIFEST_PATH" "$LEGACY_MANIFEST_PATH"
+    append_legacy_removed_paths "$LEGACY_MANIFEST_PATH"
+    finalize_manifest "$LEGACY_MANIFEST_PATH"
+    ACTIVE_MANIFEST_PATH="$LEGACY_MANIFEST_PATH"
     return 0
   fi
 
@@ -379,11 +383,11 @@ PACE 已安装到:
 
 之后可直接在任意项目根目录运行:
 
-  node "$PACE_HOME/bin/pace-init.js" local
+  node "$PACE_HOME/bin/pace-init.js"
   node "$PACE_HOME/bin/pace-workflow.js" route --json
   node "$PACE_HOME/bin/pace-git.js" status
 
 仅在需要排查模板合并结果时，再运行:
 
-  node "$PACE_HOME/bin/pace-merge.js" local
+  node "$PACE_HOME/bin/pace-merge.js"
 EOF

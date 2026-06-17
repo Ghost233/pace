@@ -1,13 +1,13 @@
 ---
 name: pace:config
-description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地模式参数，并生成 `pace-init.js local` 所需的最小输入。当用户首次使用、需要修改本地 workflow 配置、或想切换并发数 / 模型档位 / git 身份时触发。
+description: 配置 PACE 工作区，收敛 `.pace/config*.yaml` 参数，并生成 `pace-init.js` 所需的最小输入。当用户首次使用、需要修改 workflow 配置、或想切换并发数 / 模型档位 / git 身份时触发。
 ---
 
 # PACE Config
 
 ## 当前定义
 
-当前仓库只定义本地模式：
+默认配置：
 
 - `executor = claude-code`
 - `tracker.type = local`
@@ -23,7 +23,7 @@ description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地
    - `agents.max_concurrent`
    - `agents.model_profile`
 4. 构造并执行：
-   - `node "$HOME/.codex/skills/pace/bin/pace-init.js" local --git-name "<name>" --git-email "<email>" --max-concurrent "<n>" --model-profile "<profile>"`
+   - `node "$HOME/.codex/skills/pace/bin/pace-init.js" --git-name "<name>" --git-email "<email>" --max-concurrent "<n>" --model-profile "<profile>"`
 5. 输出确认摘要
 
 ## 输出摘要至少包含
@@ -38,5 +38,5 @@ description: 配置本地 PACE 工作区，收敛 `.pace/config*.yaml` 的本地
 ## 边界
 
 - 不要写多角色 managers
-- 只询问当前本地 workflow 需要的字段
+- 只询问当前 workflow 需要的字段
 - 不要引入任何外部追踪或角色配置

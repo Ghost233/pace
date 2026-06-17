@@ -11,11 +11,11 @@ description: 初始化本地 PACE 工作区的最小真相源，识别 greenfiel
 
 如果不存在，不要再回退读取 `.pace-config.yaml`，也不要用隐式默认值继续。应停止并要求先运行：
 
-- `node "$HOME/.codex/skills/pace/bin/pace-init.js" local`
+- `node "$HOME/.codex/skills/pace/bin/pace-init.js"`
 
 ## 当前定义
 
-当前仓库的 bootstrap 只定义本地模式：
+当前仓库的 bootstrap 默认使用工作区状态：
 
 - 所有工作流产物写入 `.pace/`
 - 不依赖任何外部状态源
